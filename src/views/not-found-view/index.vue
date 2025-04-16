@@ -1,9 +1,8 @@
+<template>
+  <div>404 not found</div>
+</template>
+
 <script setup lang="ts">
 </script>
 
-<template>
-  <div></div>
-</template>
-
-<style scoped lang="less">
-</style>
+<style scoped lang="less" src="./index.less"></style>
