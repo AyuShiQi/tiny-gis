@@ -3,18 +3,18 @@
     <div class="left-bar">
       <div class="profile">
         <div class="avatar">
-          <vi-avater src="public/avatar.png" alt="头像" class="ava"/>
+          <vi-avater src="/public/avatar.png" alt="头像" class="ava"/>
           <div class="mask"></div>
         </div>
         <div class="title">TinyGIS</div>
       </div>
       <!-- <vi-menu @select="handleSelect"> -->
-      <vi-menu class="menu" router :default-id="2">
+      <vi-menu class="menu" router>
         <vi-menu-item to="/home/project">
           <vi-icon type="xinyongka" class="ico"/>
           我的项目
         </vi-menu-item>
-        <vi-menu-item to="/home/moudle">
+        <vi-menu-item to="/home/module">
           <vi-icon type="yingyong" class="ico"/>
           模型管理
         </vi-menu-item>

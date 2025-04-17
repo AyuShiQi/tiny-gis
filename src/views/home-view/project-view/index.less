@@ -1,2 +1,25 @@
 .content {
+  display: block;
+  .header {
+    display: flex;
+    height: 32px;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+  }
+
+  .project-lis {
+    display: flex;
+    width: 100%;
+    height: calc(100% - 32px);
+    padding-top: 32px;
+    background-color: pink;
+    flex-wrap: wrap;
+    gap: 32px;
+  }
 }
