@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>测试用</title>
+  </head>
+  <body>
+    <div id="app">
+        <textarea type="text" id="content" style="width: 400px;height: 200px;"></textarea>
+        <button id="btn">复制</button>
+        <div id="res" style="font-size: 20px;"></div>
+    </div>
+    <script type="text/javascript">
+        const textareaIpt = document.getElementById('content')
+        const resContent = document.getElementById('res')
+        const btn = document.getElementById('btn')
+
+        console.log(textareaIpt)
+        textareaIpt.addEventListener('input', (e) => {
+            console.log()
+            const lis = e.target.value.split('\n');
+
+            const res = []
+            for (let i = 0, j = 1; j < lis.length; i+=2, j+=2) {
+                res.push(`${lis[i]}：${lis[j]}；`)
+            }
+
+            resContent.innerHTML = res.join('')
+        })
+
+        function copyText() {
+            var copyText = resContent.innerHTML;
+            navigator.clipboard.writeText(copyText)
+        }
+
+        btn.addEventListener('click', copyText)
+    </script>
+  </body>
+</html>

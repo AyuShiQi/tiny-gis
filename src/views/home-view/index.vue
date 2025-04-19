@@ -8,7 +8,6 @@
         </div>
         <div class="title">TinyGIS</div>
       </div>
-      <!-- <vi-menu @select="handleSelect"> -->
       <vi-menu class="menu" router>
         <vi-menu-item to="/home/project">
           <vi-icon type="xinyongka" class="ico"/>
