@@ -6,7 +6,8 @@ import {
   GetProjs,
   GetProjDetail,
   DeleteProj,
-  UpdateProj
+  UpdateProj,
+  RenameProj
 } from '@/interface/project'
 
 /** 创建项目 */
@@ -39,12 +40,13 @@ export const getProjDetail: GetProjDetail = (res) => {
     method: 'get',
     headers: {
       satoken: res.token
+    },
+    params: {
+      id: res.id
     }
   }).then((val: any) => {
-    for (const item of val.data) {
-      item.json1 = JSON.parse(item.json1)
-      item.json2 = JSON.parse(item.json2)
-    }
+    // val.json1 = JSON.parse(val.json1)
+    // val.json2 = JSON.parse(val.json2)
     return val
   })
 }
@@ -72,9 +74,24 @@ export const updateProj: UpdateProj = (res) => {
       satoken: res.token
     },
     data: qs.stringify({
-      TabId: res.id,
+      id: res.id,
       json1: JSON.stringify(res.json1),
       json2: JSON.stringify(res.json2)
+    })
+  })
+}
+
+/** 更新项目 */
+export const renameProj: RenameProj = (res) => {
+  return request({
+    url: '/project/update',
+    method: 'post',
+    headers: {
+      satoken: res.token
+    },
+    data: qs.stringify({
+      id: res.id,
+      title: res.title
     })
   })
 }

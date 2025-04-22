@@ -7,7 +7,7 @@ enum CreateProjMode {
 
 /** 项目接口 */
 export type Project = {
-  id: number
+  id: string
   updateTime: string
   createTime: string
   title: string // 标题 
@@ -17,7 +17,7 @@ export type Project = {
 }
 
 export type ListProject = {
-  id: number
+  id: string
   updateTime: string
   createTime: string
   title: string // 标题 
@@ -48,19 +48,26 @@ interface DeleteProjReq {
 interface UpdateProjReq {
   token: string
   id: Project['id']
-  title?: string // 标题 
   json1?: any // data
   json2?: any // style
 }
 
+interface RenameProjReq {
+  token: string
+  id: Project['id']
+  title?: string // 标题 
+}
+
 export type CreateProjRes = Response<any>
 export type GetProjsRes = Response<ListProject[]>
-export type GetProjDetailRes = Response<Project[]>
+export type GetProjDetailRes = Response<Project>
 export type DeleteProjRes = Response<any>
 export type UpdateProjRes= Response<any>
+export type RenameProjRes= Response<any>
 
 export type CreateProj = (res: CreateProjReq) => Promise<CreateProjRes>
 export type GetProjs = (res: GetProjsReq) => Promise<GetProjsRes>
 export type GetProjDetail = (res: GetProjDetailReq) => Promise<GetProjDetailRes>
 export type DeleteProj = (res: DeleteProjReq) => Promise<DeleteProjRes>
 export type UpdateProj = (res: UpdateProjReq) => Promise<UpdateProjRes>
+export type RenameProj = (res: RenameProjReq) => Promise<RenameProjRes>

@@ -27,7 +27,9 @@
         </vi-menu-item>
       </vi-menu>
     </div>
-    <router-view class="right-content"/>
+    <div class="right-content">
+      <router-view />
+    </div>
   </div>
 </template>
 

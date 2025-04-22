@@ -22,29 +22,14 @@ export default defineConfig({
         },
     },
   },
-  // server: {
-  //   // 跨域配置
-  //   proxy: {
-  //     '/user': {
-  //       target: 'http://182.43.52.124:8267',
-  //     },
-  //     '/passport': {
-  //       target: 'http://182.43.52.124:8267',
-  //     },
-  //     '/getcodebye': {
-  //       target: 'http://182.43.52.124:8267',
-  //     },
-  //     '/addEmail': {
-  //       target: 'http://182.43.52.124:8267',
-  //     },
-  //     '/tab': {
-  //       target: 'http://182.43.52.124:8267',
-  //     },
-  //     '/thumbnail': {
-  //       target: 'http://182.43.52.124:8267',
-  //     }
-  //   }
-  // },
+  server: {
+    // 跨域配置
+    proxy: {
+      '/project': {
+        target: 'http://127.0.0.1:4523/m1/3408606-1087246-default',
+      },
+    }
+  },
   build: {
     outDir: './dist',
     assetsDir: './assetsDir',
