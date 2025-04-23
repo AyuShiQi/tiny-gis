@@ -2,7 +2,7 @@
   <div class="content">
     <div class="header">
       <div class="title">我的项目</div>
-      <vi-button mutate color="purple">新建项目</vi-button>
+      <vi-button mutate color="purple" @click="() => { createOpen = true }">新建项目</vi-button>
     </div>
     <vi-scroll class="project-lis">
       <div class="empty" v-if="projectList.length === 0">
@@ -20,6 +20,8 @@
       </div>
     </vi-scroll>
   </div>
+  <delete-dialog v-model="deleteOpen" :target="target"/>
+  <create-dialog v-model="createOpen" :target="target"/>
   <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete"/>
   <vi-dialog v-model="renameOpen" title="重命名" :toSure="handleRename">
     <vi-input v-model="renameVal" type="button" round class="rename-ipt" />
@@ -48,6 +50,8 @@
 // @ts-ignore
 import EmptyIcon from '/public/empty.svg?component'
 import ProjectItem from '@/components/project-item/index.vue'
+import DeleteDialog from '@/components/delete-dialog/index.vue'
+import CreateDialog from '@/components/create-dialog/index.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { deleteProj, getProjs, renameProj } from '@/network/project';
 import { ViMessage } from 'viog-ui'
@@ -57,12 +61,13 @@ import router from '@/router';
 const projectList = reactive<ListProject[]>([])
 const targetIndex = ref(-1)
 const deleteOpen = ref(false)
+const createOpen = ref(true)
 const renameOpen = ref(false)
 const detailOpen = ref(false)
 
 const renameVal = ref<string>()
 
-const target = computed(() => {
+const target = computed<ListProject | null>(() => {
   if (targetIndex.value >= 0) {
     return projectList[targetIndex.value]
   }

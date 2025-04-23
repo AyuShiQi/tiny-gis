@@ -28,7 +28,7 @@
 import TextEllipsis from '@/components/text-ellipsis/index.vue'
 import { defineProps, computed } from 'vue'
 import { ListProject } from '@/interface/project';
-import dayjs from 'dayjs';
+import { unixToStringFormat } from '@/utils/date';
 
 const { proj, index } = defineProps<{ proj?: ListProject, index: number }>()
 const emit = defineEmits<{
@@ -39,7 +39,7 @@ const emit = defineEmits<{
 }>()
 
 const updateDate = computed(() => {
-  return dayjs.unix(Number(proj?.updateTime)).format('YYYY年MM月DD日 hh:mm:ss')
+  return unixToStringFormat(proj?.updateTime)
 })
 
 const handleDelete = () => {
