@@ -1,6 +1,6 @@
 import { Response } from '.'
 
-enum CreateProjMode {
+export enum CreateProjMode {
   Default = 0,
   Template = 1
 }
@@ -26,6 +26,7 @@ export type ListProject = {
 
 interface CreateProjReq {
   token: string
+  title: string
   mode: CreateProjMode
   /** 模板id */
   templateId?: string

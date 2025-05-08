@@ -21,7 +21,7 @@
     </vi-scroll>
   </div>
   <delete-dialog v-model="deleteOpen" :target="target"/>
-  <create-dialog v-model="createOpen" :target="target"/>
+  <create-dialog v-model="createOpen" @createFinish="handleCreateFinish"/>
   <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete"/>
   <vi-dialog v-model="renameOpen" title="重命名" :toSure="handleRename">
     <vi-input v-model="renameVal" type="button" round class="rename-ipt" />
@@ -64,6 +64,7 @@ const deleteOpen = ref(false)
 const createOpen = ref(true)
 const renameOpen = ref(false)
 const detailOpen = ref(false)
+const listLoading = ref(false)
 
 const renameVal = ref<string>()
 
@@ -75,14 +76,18 @@ const target = computed<ListProject | null>(() => {
   return null
 })
 
-// TODO
-const queryProjList = () => {
-  getProjs({
-    token: '123'
-  }).then(res => {
+const queryProjList = async () => {
+  try {
+    listLoading.value = true
+    const res = await getProjs({
+      token: '123'
+    })
+
     projectList.length = 0
     projectList.push(...res.data)
-  })
+  } finally {
+    listLoading.value = false
+  }
 }
 
 const openDelete = (index: number) => {
@@ -124,7 +129,7 @@ const handleDelete = () => {
   }).then(() => {
     ViMessage.append('删除成功', 2000)
     // TODO: 更新列表
-
+    queryProjList()
   }).catch(() => {
     ViMessage.append('删除失败', 2000)
   })
@@ -138,14 +143,19 @@ const handleRename = () => {
     return false
   }
 
+  if (!renameVal.value) {
+    ViMessage.append('标题不可为空', 2000)
+    return false
+  }
+
   if (target.value.title === renameVal.value) {
     return false
   }
 
-  // TODO
   renameProj({
     token: '',
-    id: target.value.id
+    id: renameVal.value,
+    title: target.value.title
   }).then(() => {
     ViMessage.append('操作成功', 2000)
   }).catch(() => {
@@ -153,6 +163,14 @@ const handleRename = () => {
   })
 
   return true
+}
+
+const handleCreateFinish = (createRes: boolean, id?: string) => {
+  if (createRes) {
+    // 刷新列表
+    queryProjList()
+    router.push(`/edit/${id}`)
+  }
 }
 
 watch(target, () => {
