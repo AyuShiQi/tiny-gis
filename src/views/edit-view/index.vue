@@ -1,6 +1,6 @@
 <template>
   <div class="content">
-    <div class="loading-mask" v-show="loading">
+    <div class="loading-mask" v-show="loading || !viewerIsExist">
       <vi-loading type="diamond" color="purple"/>
     </div>
     <div class="header">
@@ -11,7 +11,7 @@
       <div class="title">{{ target?.title ?? '未命名' }}</div>
       <vi-icon type="shezhi" class="setting" @click="() => { settingOpen = true }"/>
     </div>
-    <gis-cesium/>
+    <gis-cesium @viewerExistChange="(isExist) => { viewerIsExist = isExist }"/>
     <vi-drawer class="gis-drawer" v-model="leftOpen" direction="left"></vi-drawer>
     <vi-drawer class="gis-drawer" v-model="rightOpen"></vi-drawer>
   </div>
@@ -64,6 +64,7 @@ const leftOpen = ref(false)
 const settingOpen = ref(false)
 const deleteOpen = ref(false)
 const loading = ref(true)
+const viewerIsExist = ref(false)
 
 const targetId = ref<string>()
 const target = ref<Project | null>(null)

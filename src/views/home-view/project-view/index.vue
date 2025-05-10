@@ -61,7 +61,7 @@ import router from '@/router';
 const projectList = reactive<ListProject[]>([])
 const targetIndex = ref(-1)
 const deleteOpen = ref(false)
-const createOpen = ref(true)
+const createOpen = ref(false)
 const renameOpen = ref(false)
 const detailOpen = ref(false)
 const listLoading = ref(false)
@@ -166,6 +166,7 @@ const handleRename = () => {
 }
 
 const handleCreateFinish = (createRes: boolean, id?: string) => {
+  console.log(createRes)
   if (createRes) {
     // 刷新列表
     queryProjList()
