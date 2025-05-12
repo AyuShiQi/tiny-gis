@@ -1,4 +1,5 @@
 import { Response } from '.'
+import { ModuleJSON } from './module'
 
 export enum CreateProjMode {
   Default = 0,
@@ -10,8 +11,8 @@ export type Project = {
   id: string
   updateTime: string
   createTime: string
-  title: string // 标题 
-  json1: any // data
+  title: string // 标题
+  modelsArrJson: ModuleJSON[] // 用于储存
   json2: any // style
   url: string // 图像url
 }
@@ -20,7 +21,7 @@ export type ListProject = {
   id: string
   updateTime: string
   createTime: string
-  title: string // 标题 
+  title: string // 标题
   url: string // 图像url
 }
 
@@ -37,12 +38,12 @@ interface GetProjsReq {
 }
 
 interface GetProjDetailReq {
-  token: string,
+  token: string
   id: Project['id']
 }
 
 interface DeleteProjReq {
-  token: string,
+  token: string
   id: Project['id']
 }
 
@@ -56,15 +57,15 @@ interface UpdateProjReq {
 interface RenameProjReq {
   token: string
   id: Project['id']
-  title?: string // 标题 
+  title?: string // 标题
 }
 
 export type CreateProjRes = Response<any>
 export type GetProjsRes = Response<ListProject[]>
 export type GetProjDetailRes = Response<Project>
 export type DeleteProjRes = Response<any>
-export type UpdateProjRes= Response<any>
-export type RenameProjRes= Response<any>
+export type UpdateProjRes = Response<any>
+export type RenameProjRes = Response<any>
 
 export type CreateProj = (res: CreateProjReq) => Promise<CreateProjRes>
 export type GetProjs = (res: GetProjsReq) => Promise<GetProjsRes>

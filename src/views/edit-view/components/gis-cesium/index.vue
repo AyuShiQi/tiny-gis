@@ -5,9 +5,10 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import * as Cesium from 'cesium'
-import { renderRelativeModel } from '@/global/module'
+import { initModelRegistry, renderRelativeModel } from '@/global/module'
 import { workStation } from '@/global/moduleJson'
 import { initGrid } from '@/global/grid'
+import { addCameraControl } from '@/global/camera'
 
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
 
@@ -82,6 +83,7 @@ onMounted(() => {
   // ====== 相机视角 ======
   // #region
   const position = Cesium.Cartesian3.fromDegrees(0, 0, 10)
+  console.log(position, '12138')
   // 相机直接跳转
   viewer.camera.setView({
     // 相机所处的位置
@@ -91,7 +93,7 @@ onMounted(() => {
       // 头两边摆
       heading: Cesium.Math.toRadians(0),
       // 头左右摆
-      pitch: Cesium.Math.toRadians(270),
+      pitch: Cesium.Math.toRadians(-90),
       // 头上下摇
       roll: Cesium.Math.toRadians(0)
     }
@@ -125,7 +127,15 @@ onMounted(() => {
   //     })
   //   }
   // ));
-  renderRelativeModel(workStation, viewer);
+  addCameraControl(viewer, {
+    unit: 'meter',
+    originPosition: [25, 25],
+    maxDistance: 100,
+    maxHeight: 100
+  })
+  const modelControl = initModelRegistry(viewer)
+  modelControl.registerModel(workStation)
+  modelControl.addClickControl(viewer)
 })
 </script>
 

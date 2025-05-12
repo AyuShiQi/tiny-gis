@@ -1,7 +1,9 @@
 import { ModuleJSON } from "@/interface/module";
 
 export const workStation: ModuleJSON = {
-  "basePosition": [0, 0, 0],
+  id: 1,
+  unit: 'meter',
+  "basePosition": [5, 5, 0],
   "objects": [
     {
       "id": "desk-top",
@@ -83,14 +85,14 @@ export const workStation: ModuleJSON = {
       "position": [-0.5, 0.0, 0.35],
       "dimensions": [0.38, 0.48, 0.15],
       "color": [0.6, 0.5, 0.4, 1.0]
-    },
-    {
-      "id": "workstation-label",
-      "type": "label",
-      "position": [0.0, 0.0, 1.5], 
-      "text": "工位模型",
-      "font": "24px sans-serif",
-      "color": "black"
     }
-  ]
+  ],
+  label: {
+    "id": "workstation-label",
+    "type": "label",
+    "position": [0.0, 0.0, 1.5], 
+    "text": "工位模型",
+    "font": "24px sans-serif",
+    "color": "black"
+  }
 }
