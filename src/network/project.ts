@@ -1,29 +1,22 @@
 import { request } from '.'
 import qs from 'qs'
 
-import { 
-  CreateProj,
-  GetProjs,
-  GetProjDetail,
-  DeleteProj,
-  UpdateProj,
-  RenameProj
-} from '@/interface/project'
+import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetModules } from '@/interface/project'
 
 /** 创建项目 */
-export const createProj: CreateProj = (res) => {
+export const createProj: CreateProj = res => {
   return request({
-      url: '/project/create',
-      method: 'post',
-      headers: {
-        satoken: res.token
-      },
-      data: qs.stringify(res)
+    url: '/project/create',
+    method: 'post',
+    headers: {
+      satoken: res.token
+    },
+    data: qs.stringify(res)
   })
 }
 
 /** 获取项目列表 */
-export const getProjs: GetProjs = (res) => {
+export const getProjs: GetProjs = res => {
   return request({
     url: '/project/lists',
     method: 'get',
@@ -34,7 +27,7 @@ export const getProjs: GetProjs = (res) => {
 }
 
 /** 获取项目详情 */
-export const getProjDetail: GetProjDetail = (res) => {
+export const getProjDetail: GetProjDetail = res => {
   return request({
     url: '/project/detail',
     method: 'get',
@@ -52,7 +45,7 @@ export const getProjDetail: GetProjDetail = (res) => {
 }
 
 /** 删除项目 */
-export const deleteProj: DeleteProj = (res) => {
+export const deleteProj: DeleteProj = res => {
   return request({
     url: '/project/delete',
     method: 'post',
@@ -66,7 +59,7 @@ export const deleteProj: DeleteProj = (res) => {
 }
 
 /** 更新项目 */
-export const updateProj: UpdateProj = (res) => {
+export const updateProj: UpdateProj = res => {
   return request({
     url: '/project/update',
     method: 'post',
@@ -82,7 +75,7 @@ export const updateProj: UpdateProj = (res) => {
 }
 
 /** 更新项目 */
-export const renameProj: RenameProj = (res) => {
+export const renameProj: RenameProj = res => {
   return request({
     url: '/project/update',
     method: 'post',
@@ -93,5 +86,16 @@ export const renameProj: RenameProj = (res) => {
       id: res.id,
       title: res.title
     })
+  })
+}
+
+/** 获取场景列表 */
+export const getModules: GetModules = res => {
+  return request({
+    url: '/project/modules',
+    method: 'get',
+    headers: {
+      satoken: res.token
+    }
   })
 }

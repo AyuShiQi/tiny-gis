@@ -1,5 +1,7 @@
 export interface CreateForm {
   title: string
-  needModules: boolean
+  needModules: number
   modulesID: string
+  coordinates: [number, number]
+  radius: number
 }

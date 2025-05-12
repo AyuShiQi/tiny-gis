@@ -28,6 +28,8 @@ export type ListProject = {
 interface CreateProjReq {
   token: string
   title: string
+  coordinates: [number, number]
+  radius: number
   mode: CreateProjMode
   /** 模板id */
   templateId?: string
@@ -60,12 +62,22 @@ interface RenameProjReq {
   title?: string // 标题
 }
 
+interface GetModulesReq {
+  token: string
+}
+
+export interface DefaultModules {
+  id: number
+  name: 'string'
+}
+
 export type CreateProjRes = Response<any>
 export type GetProjsRes = Response<ListProject[]>
 export type GetProjDetailRes = Response<Project>
 export type DeleteProjRes = Response<any>
 export type UpdateProjRes = Response<any>
 export type RenameProjRes = Response<any>
+export type GetModulesRes = Response<DefaultModules[]>
 
 export type CreateProj = (res: CreateProjReq) => Promise<CreateProjRes>
 export type GetProjs = (res: GetProjsReq) => Promise<GetProjsRes>
@@ -73,3 +85,4 @@ export type GetProjDetail = (res: GetProjDetailReq) => Promise<GetProjDetailRes>
 export type DeleteProj = (res: DeleteProjReq) => Promise<DeleteProjRes>
 export type UpdateProj = (res: UpdateProjReq) => Promise<UpdateProjRes>
 export type RenameProj = (res: RenameProjReq) => Promise<RenameProjRes>
+export type GetModules = (res: GetModulesReq) => Promise<GetModulesRes>
