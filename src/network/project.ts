@@ -1,7 +1,7 @@
 import { request } from '.'
 import qs from 'qs'
 
-import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetModules } from '@/interface/project'
+import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetModules, GetProjDetailRes } from '@/interface/project'
 
 /** 创建项目 */
 export const createProj: CreateProj = res => {
@@ -37,9 +37,12 @@ export const getProjDetail: GetProjDetail = res => {
     params: {
       id: res.id
     }
-  }).then((val: any) => {
-    // val.json1 = JSON.parse(val.json1)
-    // val.json2 = JSON.parse(val.json2)
+  }).then((val: GetProjDetailRes) => {
+    if (val.data) {
+      val.data.coordinates = JSON.parse(val.data.coordinates as unknown as string)
+      val.data.modelsArr = JSON.parse(val.data.modelsArr as unknown as string)
+      val.data.globalObj = JSON.parse(val.data.globalObj as unknown as string)
+    }
     return val
   })
 }

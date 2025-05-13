@@ -1,0 +1,27 @@
+{
+  "外太空": "undefined",
+  "晴空": {
+    "positiveX": "/src/assets/skybox/晴空/漫天彩云01_LF.jpg",
+    "negativeX": "/src/assets/skybox/晴空/漫天彩云01_RT.jpg",
+    "positiveY": "/src/assets/skybox/晴空/漫天彩云01_DN.jpg",
+    "negativeY": "/src/assets/skybox/晴空/漫天彩云01_UP.jpg",
+    "positiveZ": "/src/assets/skybox/晴空/漫天彩云01_FR.jpg",
+    "negativeZ": "/src/assets/skybox/晴空/漫天彩云01_BK.jpg"
+  },
+  "灰色天花板": {
+    "positiveX": "/src/assets/skybox/灰色天花板/01_LF.jpg",
+    "negativeX": "/src/assets/skybox/灰色天花板/01_RT.jpg",
+    "positiveY": "/src/assets/skybox/灰色天花板/01_DN.jpg",
+    "negativeY": "/src/assets/skybox/灰色天花板/01_UP.jpg",
+    "positiveZ": "/src/assets/skybox/灰色天花板/01_FR.jpg",
+    "negativeZ": "/src/assets/skybox/灰色天花板/01_BK.jpg"
+  },
+  "雪地": {
+    "positiveX": "/src/assets/skybox/雪地/冬日黎明_LF.jpg",
+    "negativeX": "/src/assets/skybox/雪地/冬日黎明_RT.jpg",
+    "positiveY": "/src/assets/skybox/雪地/冬日黎明_DN.jpg",
+    "negativeY": "/src/assets/skybox/雪地/冬日黎明_UP.jpg",
+    "positiveZ": "/src/assets/skybox/雪地/冬日黎明_FR.jpg",
+    "negativeZ": "/src/assets/skybox/雪地/冬日黎明_BK.jpg"
+  }
+}

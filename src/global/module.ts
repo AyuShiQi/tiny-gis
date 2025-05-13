@@ -272,9 +272,8 @@ export const initModelRegistry = (viewer: Cesium.Viewer) => {
                 highlightLabels.forEach(l => l?.reset())
                 highlightLabels.length = 0
               }
-              highlightLabels.push(targetLable)
               // 高亮标签
-              highlightLabel(targetLable)
+              highlightLabels.push(highlightLabel(targetLable))
             }
           }
         }

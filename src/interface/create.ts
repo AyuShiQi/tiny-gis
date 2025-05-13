@@ -4,4 +4,5 @@ export interface CreateForm {
   modulesID: string
   coordinates: [number, number]
   radius: number
+  layers: boolean
 }

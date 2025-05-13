@@ -12,9 +12,23 @@ export type Project = {
   updateTime: string
   createTime: string
   title: string // 标题
-  modelsArrJson: ModuleJSON[] // 用于储存
-  json2: any // style
+  modelsArr: ModuleJSON[] // 用于储存所有的模型数据
+  globalObj: {
+    showDistance: boolean
+    showGrid: boolean
+    gridCellSize: number
+    layersColor: string
+    distanceColor: string
+    gridColor: string
+    showSkybox: boolean
+    skyboxName: string
+    skyColor: string
+    showSkyAtmosphere: boolean
+  } // 储存所有基础数据
   url: string // 图像url
+  coordinates: [number, number]
+  radius: number
+  layers: boolean
 }
 
 export type ListProject = {
@@ -33,6 +47,7 @@ interface CreateProjReq {
   mode: CreateProjMode
   /** 模板id */
   templateId?: string
+  layers: boolean
 }
 
 interface GetProjsReq {

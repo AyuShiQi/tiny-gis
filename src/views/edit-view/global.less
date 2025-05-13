@@ -1,7 +1,6 @@
 .gis-drawer {
   background-color: #16061e49;
-  filter: drop-shadow(0px 0px 1px #000000);
-  backdrop-filter: blur(4px);
+  backdrop-filter: drop-shadow(0px 0px 1px #000000) blur(4px);
 
   .vi-drawer-handle {
     .drawer-content {
@@ -13,7 +12,7 @@
     .vi-drawer-arrow {
       path {
         fill: var(--vi-purple-color4);
-        opacity: .5;
+        opacity: 0.5;
       }
     }
   }
@@ -22,4 +21,36 @@
 .setting-dialog {
   --vi-dialog-width: 400px;
   --vi-dialog-height: 400px;
+}
+
+.gis-drawer {
+  .vi-form-label {
+    color: #ffffffd5;
+  }
+
+  .vi-select {
+    .vi-select-input {
+      --vi-background-color-deep: #ffffff3f;
+      --vi-background-color: #ffffff21;
+      --vi-link-color: #ffffffd5;
+      color: #ffffffd5;
+    }
+  }
+
+  .vi-color-select {
+    .vi-input-prefix {
+      color: #404040;
+    }
+  }
+
+  .global-data {
+    margin-bottom: 8px;
+    --vi-input-width: 120px;
+    --vi-link-color: #ffffffd5;
+    --vi-background-color: #ffffff21;
+
+    .vi-input:first-of-type {
+      margin-bottom: 4px;
+    }
+  }
 }

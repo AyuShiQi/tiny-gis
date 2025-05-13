@@ -40,6 +40,9 @@
               <vi-option v-for="v in projectStore.defaultModulesList" :key="v.id" :value="v.id">{{ v.name }}</vi-option>
             </vi-select>
           </vi-form-item>
+          <vi-form-item label="开启地球图层">
+            <vi-switch v-model="formData.layers" name="layers"></vi-switch>
+          </vi-form-item>
         </div>
         <template #sure>
           <vi-button color="purple" @click="submit" :disabled="createLoading">
@@ -73,7 +76,8 @@ const formData = reactive<CreateForm>({
   needModules: CreateProjMode.Default,
   modulesID: '',
   coordinates: [0, 0],
-  radius: 100
+  radius: 100,
+  layers: false
 })
 
 const createLoading = ref(false)
@@ -133,7 +137,8 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
     mode: formData.needModules,
     templateId: formData.modulesID,
     coordinates: formData.coordinates,
-    radius: formData.radius
+    radius: formData.radius,
+    layers: formData.layers
   })
 
   createLoading.value = false

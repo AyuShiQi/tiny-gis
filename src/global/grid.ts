@@ -4,10 +4,8 @@ import { getCesiumColorByName } from './colorMap'
 import { metersToDegrees } from './distance'
 
 // 初始化网格线
-export const initGrid = (viewer: Cesium.Viewer, opt: GridPaintOption) => {
-  // 存储网格线实体
-  const gridEntities: GridEntities = []
-  return paintGrid(viewer, gridEntities, opt)
+export const initGrid = () => {
+  return [] as GridEntities
 }
 
 export const removeGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities) => {
@@ -17,65 +15,103 @@ export const removeGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities) =>
   gridEntities.length = 0 // 清空网格实体数组
 }
 
-const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt: GridPaintOption): GridEntities => {
+/**
+ * @param viewer Cesium Viewer 实例
+ * @param centerLon 中心经度
+ * @param centerLat 中心纬度
+ * @param totalSide 总边长（米），整个正方形边长为 2x
+ * @param cellSize 每个小方格的边长（米），为 y
+ * @param options 可选参数
+ */
+const drawSquareGrid = (
+  viewer: Cesium.Viewer,
+  gridEntities: GridEntities,
+  centerLon: number,
+  centerLat: number,
+  totalSide: number,
+  cellSize: number,
+  opt: {
+    color: Cesium.Color
+    width: number
+  }
+): void => {
+  const earthRadius = 6378137.0
+
+  const meterToDegreesLat = (m: number): number => (m / earthRadius) * (180 / Math.PI)
+
+  const meterToDegreesLon = (m: number, lat: number): number => (m / (earthRadius * Math.cos(Cesium.Math.toRadians(lat)))) * (180 / Math.PI)
+
+  const halfSide = totalSide / 2
+  const lineCnt = Math.floor(totalSide / cellSize)
+  const latStep = meterToDegreesLat(cellSize)
+  const lonStep = meterToDegreesLon(cellSize, centerLat)
+
+  const startLat = centerLat - meterToDegreesLat(halfSide)
+  const startLon = centerLon - meterToDegreesLon(halfSide, centerLat)
+
+  for (let i = 0; i <= lineCnt; i++) {
+    const lat = startLat + i * latStep
+
+    // 横向线（经度变化）
+    const latLinePoints: Cesium.Cartesian3[] = []
+    for (let j = 0; j <= lineCnt; j++) {
+      const lon = startLon + j * lonStep
+      latLinePoints.push(Cesium.Cartesian3.fromDegrees(lon, lat))
+    }
+
+    gridEntities.push(
+      viewer.entities.add({
+        polyline: {
+          positions: latLinePoints,
+          width: opt.width,
+          material: opt.color
+        }
+      })
+    )
+
+    const lon = startLon + i * lonStep
+
+    // 纵向线（纬度变化）
+    const lonLinePoints: Cesium.Cartesian3[] = []
+    for (let j = 0; j <= lineCnt; j++) {
+      const lat2 = startLat + j * latStep
+      lonLinePoints.push(Cesium.Cartesian3.fromDegrees(lon, lat2))
+    }
+
+    gridEntities.push(
+      viewer.entities.add({
+        polyline: {
+          positions: lonLinePoints,
+          width: opt.width,
+          material: opt.color
+        }
+      })
+    )
+  }
+}
+
+export const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt: GridPaintOption): GridEntities => {
   // 删除现有网格线
   removeGrid(viewer, gridEntities)
 
   // 设置网格的大小和间距
-  const { type, baseOrigin, color = 'black', alpha = 1, lineWidth = 1 } = opt
+  const { type, baseOrigin, color = '#000', alpha = 1, lineWidth = 1, defaultShow = false } = opt
 
   // 经纬线起始坐标点
   const basePosition = Cesium.Cartesian3.fromDegrees(...baseOrigin)
 
   if (type === 'grid') {
-    const { unit = 'meter', gridSize, lineCnt } = opt
+    const { unit = 'meter', gridSize, squareSize } = opt
     const [startLongitude, startLatitude] = baseOrigin
     const [latStep, lonStep] =
       unit === 'meter'
         ? [metersToDegrees(gridSize, 0, startLatitude).latDegree, metersToDegrees(0, gridSize, startLatitude).lonDegree]
         : [startLatitude, startLongitude]
-
-    for (let i = 0; i <= lineCnt; i++) {
-      // 纵向网格（纬度变化）
-      const latStart = startLatitude + i * latStep
-
-      const latLinePoints = []
-      for (let j = 0; j <= lineCnt; j++) {
-        const lon = startLongitude + j * lonStep
-        const position = Cesium.Cartesian3.fromDegrees(lon, latStart)
-        latLinePoints.push(position)
-      }
-
-      // 创建纵向网格线
-      const latLine = viewer.entities.add({
-        polyline: {
-          positions: latLinePoints,
-          material: getCesiumColorByName(color).withAlpha(alpha),
-          width: lineWidth
-        }
-      })
-      gridEntities.push(latLine)
-
-      // 横向网格（经度变化）
-      const lonStart = startLongitude + i * lonStep
-
-      const lonLinePoints = []
-      for (let j = 0; j <= lineCnt; j++) {
-        const lat = startLatitude + j * latStep
-        const position = Cesium.Cartesian3.fromDegrees(lonStart, lat)
-        lonLinePoints.push(position)
-      }
-
-      // 创建横向网格线
-      const lonLine = viewer.entities.add({
-        polyline: {
-          positions: lonLinePoints,
-          material: getCesiumColorByName(color).withAlpha(alpha),
-          width: lineWidth
-        }
-      })
-      gridEntities.push(lonLine)
-    }
+    drawSquareGrid(viewer, gridEntities, lonStep, latStep, squareSize, gridSize, {
+      color: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
+      width: lineWidth
+    })
+    /** 渲染经纬线 */
   } else if (type === 'coordinates') {
     const { latStep, lonStep } = opt
     if (!Number.isInteger(latStep) || !Number.isInteger(lonStep) || lonStep >= 180 || latStep >= 90) {
@@ -97,7 +133,7 @@ const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt: GridP
       const entity = viewer.entities.add({
         polyline: new Cesium.PolylineGraphics({
           positions: points,
-          material: getCesiumColorByName(color).withAlpha(alpha),
+          material: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
           width: lineWidth // 网格线宽度
         }),
         show: true // 默认显示网格线
@@ -116,7 +152,7 @@ const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt: GridP
       const entity = viewer.entities.add({
         polyline: new Cesium.PolylineGraphics({
           positions: points,
-          material: getCesiumColorByName(color).withAlpha(alpha),
+          material: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
           width: lineWidth
         }),
         show: true
@@ -126,13 +162,50 @@ const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt: GridP
     }
   }
 
+  toggleGridVisibility(gridEntities, defaultShow)
   return gridEntities
+}
+
+// 画范围
+export const paintCircle = (viewer: Cesium.Viewer, center: [number, number], radius: number, hex = '#000') => {
+  const curColor = Cesium.Color.fromCssColorString(hex)
+  return viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(...center),
+    ellipse: {
+      semiMajorAxis: radius,
+      semiMinorAxis: radius,
+      height: 0, // 紧贴地面
+      material: curColor.withAlpha(0.1), // 半透明黄色
+      outline: true,
+      outlineColor: curColor
+    }
+  })
+}
+
+// 修改范围颜色
+export const setCircleColor = (entity: Cesium.Entity, hex: string) => {
+  const curColor = new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString(hex))
+  const curFill = new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString(hex).withAlpha(0.1))
+  if (entity.ellipse) {
+    entity.ellipse.material = curFill
+    entity.ellipse.outlineColor = curColor
+  }
 }
 
 // 控制网格线显隐
 export const toggleGridVisibility = (gridEntities: GridEntities, isVisible: boolean) => {
   gridEntities.forEach(entity => {
     entity.show = isVisible // 动态修改网格线的可见性
+  })
+}
+
+// 修改网格线颜色
+export const setGridColor = (gridEntities: GridEntities, hex: string) => {
+  const curColor = new Cesium.ColorMaterialProperty(Cesium.Color.fromCssColorString(hex))
+  gridEntities.forEach(entity => {
+    if (entity.polyline) {
+      entity.polyline.material = curColor
+    }
   })
 }
 
