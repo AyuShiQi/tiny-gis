@@ -132,7 +132,6 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
 
   createLoading.value = true
   const res = await createProj({
-    token: '',
     title: formData.title,
     mode: formData.needModules,
     templateId: formData.modulesID,

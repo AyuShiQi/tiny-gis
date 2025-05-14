@@ -33,14 +33,13 @@ const handleDelete = () => {
     return false
   }
 
-  // TODO
+  console.log(props.target.id)
+
   deleteProj({
-    token: '',
     id: props?.target.id
   })
     .then(() => {
       ViMessage.append('删除成功', 2000)
-      // TODO: 更新列表
       emit('deleteFinish')
     })
     .catch(() => {

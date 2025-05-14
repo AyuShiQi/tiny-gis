@@ -8,10 +8,10 @@ export const createProj: CreateProj = res => {
   return request({
     url: '/project/create',
     method: 'post',
-    headers: {
-      satoken: res.token
-    },
-    data: qs.stringify(res)
+    data: qs.stringify({
+      ...res,
+      coordinates: res.coordinates.map(item => Math.floor(item * 1000000))
+    })
   })
 }
 
@@ -19,10 +19,7 @@ export const createProj: CreateProj = res => {
 export const getProjs: GetProjs = res => {
   return request({
     url: '/project/lists',
-    method: 'get',
-    headers: {
-      satoken: res.token
-    }
+    method: 'get'
   })
 }
 
@@ -31,15 +28,12 @@ export const getProjDetail: GetProjDetail = res => {
   return request({
     url: '/project/detail',
     method: 'get',
-    headers: {
-      satoken: res.token
-    },
     params: {
       id: res.id
     }
   }).then((val: GetProjDetailRes) => {
     if (val.data) {
-      val.data.coordinates = JSON.parse(val.data.coordinates as unknown as string)
+      val.data.coordinates = JSON.parse(val.data.coordinates as unknown as string).map((item: string) => Number(item) / 1000000)
       val.data.modelsArr = JSON.parse(val.data.modelsArr as unknown as string)
       val.data.globalObj = JSON.parse(val.data.globalObj as unknown as string)
     }
@@ -52,9 +46,6 @@ export const deleteProj: DeleteProj = res => {
   return request({
     url: '/project/delete',
     method: 'post',
-    headers: {
-      satoken: res.token
-    },
     data: qs.stringify({
       id: res.id
     })
@@ -66,25 +57,19 @@ export const updateProj: UpdateProj = res => {
   return request({
     url: '/project/update',
     method: 'post',
-    headers: {
-      satoken: res.token
-    },
     data: qs.stringify({
       id: res.id,
-      json1: JSON.stringify(res.json1),
-      json2: JSON.stringify(res.json2)
+      modelsArr: res.modelsArr,
+      globalObj: res.globalObj
     })
   })
 }
 
-/** 更新项目 */
+/** 重命名项目 */
 export const renameProj: RenameProj = res => {
   return request({
     url: '/project/update',
     method: 'post',
-    headers: {
-      satoken: res.token
-    },
     data: qs.stringify({
       id: res.id,
       title: res.title
@@ -96,9 +81,6 @@ export const renameProj: RenameProj = res => {
 export const getModules: GetModules = res => {
   return request({
     url: '/project/modules',
-    method: 'get',
-    headers: {
-      satoken: res.token
-    }
+    method: 'get'
   })
 }

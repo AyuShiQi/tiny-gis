@@ -1,14 +1,21 @@
 {
-  "外太空": "undefined",
-  "晴空": {
-    "positiveX": "/src/assets/skybox/晴空/漫天彩云01_LF.jpg",
-    "negativeX": "/src/assets/skybox/晴空/漫天彩云01_RT.jpg",
-    "positiveY": "/src/assets/skybox/晴空/漫天彩云01_DN.jpg",
-    "negativeY": "/src/assets/skybox/晴空/漫天彩云01_UP.jpg",
-    "positiveZ": "/src/assets/skybox/晴空/漫天彩云01_FR.jpg",
-    "negativeZ": "/src/assets/skybox/晴空/漫天彩云01_BK.jpg"
+  "默认": {
+    "positiveX": "/src/assets/skybox/晴空/漫天彩云_LF.jpg",
+    "negativeX": "/src/assets/skybox/晴空/漫天彩云_RT.jpg",
+    "positiveY": "/src/assets/skybox/晴空/漫天彩云_DN.jpg",
+    "negativeY": "/src/assets/skybox/晴空/漫天彩云_UP.jpg",
+    "positiveZ": "/src/assets/skybox/晴空/漫天彩云_FR.jpg",
+    "negativeZ": "/src/assets/skybox/晴空/漫天彩云_BK.jpg"
   },
-  "灰色天花板": {
+  "夜景": {
+    "positiveX": "/src/assets/skybox/夜景/simple_night1_LF.jpg",
+    "negativeX": "/src/assets/skybox/夜景/simple_night1_RT.jpg",
+    "positiveY": "/src/assets/skybox/夜景/simple_night1_DN.jpg",
+    "negativeY": "/src/assets/skybox/夜景/simple_night1_UP.jpg",
+    "positiveZ": "/src/assets/skybox/夜景/simple_night1_FR.jpg",
+    "negativeZ": "/src/assets/skybox/夜景/simple_night1_BK.jpg"
+  },
+  "天花板": {
     "positiveX": "/src/assets/skybox/灰色天花板/01_LF.jpg",
     "negativeX": "/src/assets/skybox/灰色天花板/01_RT.jpg",
     "positiveY": "/src/assets/skybox/灰色天花板/01_DN.jpg",

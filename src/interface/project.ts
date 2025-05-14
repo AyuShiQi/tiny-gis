@@ -8,11 +8,13 @@ export enum CreateProjMode {
 
 /** 项目接口 */
 export type Project = {
+  // 项目id
   id: string
   updateTime: string
   createTime: string
   title: string // 标题
   modelsArr: ModuleJSON[] // 用于储存所有的模型数据
+  // 基础信息
   globalObj: {
     showDistance: boolean
     showGrid: boolean
@@ -40,7 +42,6 @@ export type ListProject = {
 }
 
 interface CreateProjReq {
-  token: string
   title: string
   coordinates: [number, number]
   radius: number
@@ -50,43 +51,34 @@ interface CreateProjReq {
   layers: boolean
 }
 
-interface GetProjsReq {
-  token: string
-}
+interface GetProjsReq {}
 
 interface GetProjDetailReq {
-  token: string
   id: Project['id']
 }
 
 interface DeleteProjReq {
-  token: string
   id: Project['id']
 }
 
-interface UpdateProjReq {
-  token: string
-  id: Project['id']
-  json1?: any // data
-  json2?: any // style
-}
+type UpdateProjReq = {} & Project
 
 interface RenameProjReq {
-  token: string
   id: Project['id']
   title?: string // 标题
 }
 
-interface GetModulesReq {
-  token: string
-}
+interface GetModulesReq {}
 
 export interface DefaultModules {
   id: number
   name: 'string'
 }
 
-export type CreateProjRes = Response<any>
+export type CreateProjRes = Response<{
+  // 项目id
+  id: string
+}>
 export type GetProjsRes = Response<ListProject[]>
 export type GetProjDetailRes = Response<Project>
 export type DeleteProjRes = Response<any>

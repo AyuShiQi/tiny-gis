@@ -1,9 +1,22 @@
-import { Response } from '.'
-
-interface GetUserInfoReq {
+export interface TokenHeader {
   token: string
 }
 
-export type GetUserInfoRes = Response<any>
+export interface LoginReq {
+  username: string
+  password: string
+}
 
-export type GetUserInfo = (res: GetUserInfoReq) => Promise<GetUserInfoRes>
+export interface RegisterReq {
+  username: string
+  password: string
+}
+
+export interface RenameReq extends TokenHeader {
+  username: string
+}
+
+export interface UpdatePasswordReq extends TokenHeader {
+  oldPassword: string
+  newPassword: string
+}

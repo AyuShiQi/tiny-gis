@@ -1,9 +1,9 @@
-import { reactive, ref, watch, computed } from 'vue'
+import { reactive, ref, watch, computed, onMounted } from 'vue'
 import { defineStore } from 'pinia'
-import { getUserInfo } from '@/network/user'
+import { getUserProfile } from '@/network/user'
 // import { getInfo, hasAccount as account } from '@/network/user'
 import { jumpToLogin } from '@/global/router-option'
-import { saveToken } from '@/global/local-storage-option'
+import { getToken, saveToken } from '@/global/local-storage-option'
 
 export const useUserStore = defineStore('user', () => {
   /**
@@ -11,23 +11,19 @@ export const useUserStore = defineStore('user', () => {
    */
   const isLogin = ref(false)
   const token = ref('')
+  const id = ref()
   const userName = ref()
-  const nickName = ref()
-  const mobile = ref()
-  const email = ref()
-  const hasAccount = ref(false)
 
   function getProfile(nowToken?: string) {
     return new Promise(res => {
       if (nowToken) token.value = nowToken
-      getUserInfo({
+      getUserProfile({
         token: token.value
-      }).then(data => {
+      }).then((data: any) => {
+        console.log(data)
         if (data.code === 200) {
-          userName.value = data.data.userName
-          nickName.value = data.data.nickname
-          email.value = data.data.email
-          mobile.value = data.data.mobile
+          userName.value = data.data.username
+          id.value = data.data.id
           isLogin.value = true
           res(undefined)
         } else {
@@ -40,10 +36,7 @@ export const useUserStore = defineStore('user', () => {
   function clearInfo() {
     token.value = ''
     userName.value = undefined
-    nickName.value = undefined
-    mobile.value = undefined
-    email.value = undefined
-    hasAccount.value = false
+    id.value = undefined
     isLogin.value = false
     saveToken('')
   }
@@ -52,14 +45,15 @@ export const useUserStore = defineStore('user', () => {
     if (!newVal) jumpToLogin()
   })
 
+  watch(token, newVal => {
+    saveToken(newVal)
+  })
+
   return {
     isLogin,
     token,
     userName,
-    nickName,
-    mobile,
-    email,
-    hasAccount,
+    id,
     getProfile,
     clearInfo
   }

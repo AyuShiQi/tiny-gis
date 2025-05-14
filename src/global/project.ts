@@ -1,5 +1,5 @@
 import { Project } from '@/interface/project'
-import { Color, EllipsoidTerrainProvider, SkyBox, Viewer } from 'cesium'
+import { buildModuleUrl, Color, EllipsoidTerrainProvider, SkyBox, Viewer } from 'cesium'
 import SkyboxMap from '@/assets/skybox/skybox.json'
 
 export const skyBoxOpts = Object.keys(SkyboxMap)
@@ -23,13 +23,6 @@ export const initProjectViewer = (id: string, tar: Project) => {
     fullscreenButton: false // 全屏按钮
   }
 
-  if (showSkybox) {
-    if (skyboxName) {
-      cesiumOpt.skyBox = getSkyBox(skyboxName)
-    }
-  } else {
-  }
-
   if (!layers) {
     cesiumOpt.imageryProvider = undefined // 不加载影像图层
     cesiumOpt.terrainProvider = new EllipsoidTerrainProvider() // 使用默认椭球，不加载地形
@@ -51,11 +44,9 @@ export const initProjectViewer = (id: string, tar: Project) => {
 const getSkyBox = (skyboxName: string) => {
   const sources = (SkyboxMap as any)[skyboxName ?? '默认']
 
-  return sources === 'undefined'
-    ? undefined
-    : new SkyBox({
-        sources
-      })
+  return new SkyBox({
+    sources
+  })
 }
 
 /** 设置天空盒 */
@@ -72,7 +63,9 @@ export const setSkyBoxColor = (viewer: Viewer, hex: string) => {
 /** 天空盒显隐 */
 export const setSkyBoxVisible = (viewer: Viewer, visible: boolean, opt: { hex?: string; skyBoxName?: string }) => {
   const { hex = '#000', skyBoxName = '默认' } = opt
-  viewer.scene.skyBox.show = visible
+  if (viewer?.scene?.skyBox) {
+    viewer.scene.skyBox.show = visible
+  }
   if (visible) {
     setSkyBox(viewer, skyBoxName)
   } else {

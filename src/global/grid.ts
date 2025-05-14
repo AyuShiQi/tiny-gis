@@ -49,41 +49,43 @@ const drawSquareGrid = (
   const startLat = centerLat - meterToDegreesLat(halfSide)
   const startLon = centerLon - meterToDegreesLon(halfSide, centerLat)
 
+  // 绘制横向网格线
   for (let i = 0; i <= lineCnt; i++) {
     const lat = startLat + i * latStep
 
-    // 横向线（经度变化）
-    const latLinePoints: Cesium.Cartesian3[] = []
-    for (let j = 0; j <= lineCnt; j++) {
-      const lon = startLon + j * lonStep
-      latLinePoints.push(Cesium.Cartesian3.fromDegrees(lon, lat))
-    }
+    // 起点和终点，绘制纬度弧线
+    const start = Cesium.Cartesian3.fromDegrees(startLon, lat)
+    const end = Cesium.Cartesian3.fromDegrees(startLon + lonStep * lineCnt, lat)
 
     gridEntities.push(
       viewer.entities.add({
         polyline: {
-          positions: latLinePoints,
+          positions: [start, end],
           width: opt.width,
-          material: opt.color
+          material: opt.color,
+          arcType: Cesium.ArcType.GEODESIC,
+          granularity: Cesium.Math.toRadians(1.0) // 控制弧线平滑度
         }
       })
     )
+  }
 
+  // 绘制纵向网格线
+  for (let i = 0; i <= lineCnt; i++) {
     const lon = startLon + i * lonStep
 
-    // 纵向线（纬度变化）
-    const lonLinePoints: Cesium.Cartesian3[] = []
-    for (let j = 0; j <= lineCnt; j++) {
-      const lat2 = startLat + j * latStep
-      lonLinePoints.push(Cesium.Cartesian3.fromDegrees(lon, lat2))
-    }
+    // 只提供起点和终点，绘制经度弧线
+    const start = Cesium.Cartesian3.fromDegrees(lon, startLat)
+    const end = Cesium.Cartesian3.fromDegrees(lon, startLat + latStep * lineCnt)
 
     gridEntities.push(
       viewer.entities.add({
         polyline: {
-          positions: lonLinePoints,
+          positions: [start, end],
           width: opt.width,
-          material: opt.color
+          material: opt.color,
+          arcType: Cesium.ArcType.GEODESIC,
+          granularity: Cesium.Math.toRadians(1.0)
         }
       })
     )
@@ -107,6 +109,8 @@ export const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt
       unit === 'meter'
         ? [metersToDegrees(gridSize, 0, startLatitude).latDegree, metersToDegrees(0, gridSize, startLatitude).lonDegree]
         : [startLatitude, startLongitude]
+
+    // 开始绘制
     drawSquareGrid(viewer, gridEntities, lonStep, latStep, squareSize, gridSize, {
       color: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
       width: lineWidth
@@ -118,47 +122,41 @@ export const paintGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities, opt
       console.log('经纬线渲染错误')
       return gridEntities
     }
-
-    // 绘制纬线网格
     for (let lat = -90; lat <= 90; lat += latStep) {
-      const points: Cesium.Cartesian3[] = []
-      for (let lon = -180; lon <= 180; lon += 1) {
-        // 计算相对位置
-        const offsetPosition = Cesium.Cartesian3.fromDegrees(lon, lat)
-        const relativePosition = Cesium.Cartesian3.subtract(offsetPosition, basePosition, new Cesium.Cartesian3())
-
-        points.push(Cesium.Cartesian3.add(basePosition, relativePosition, new Cesium.Cartesian3()))
-      }
+      const start = Cesium.Cartesian3.fromDegrees(-180, lat)
+      const end = Cesium.Cartesian3.fromDegrees(180, lat)
 
       const entity = viewer.entities.add({
         polyline: new Cesium.PolylineGraphics({
-          positions: points,
+          positions: [start, end],
           material: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
-          width: lineWidth // 网格线宽度
-        }),
-        show: true // 默认显示网格线
-      })
-
-      gridEntities.push(entity) // 保存实体引用
-    }
-
-    // 绘制经线网格
-    for (let lon = -180; lon <= 180; lon += lonStep) {
-      const points = []
-      for (let lat = -90; lat <= 90; lat += 1) {
-        points.push(Cesium.Cartesian3.fromDegrees(lon, lat))
-      }
-
-      const entity = viewer.entities.add({
-        polyline: new Cesium.PolylineGraphics({
-          positions: points,
-          material: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
-          width: lineWidth
+          width: lineWidth,
+          arcType: Cesium.ArcType.GEODESIC,
+          granularity: Cesium.Math.toRadians(1.0) // 控制插值精度，越小越平滑
         }),
         show: true
       })
 
-      gridEntities.push(entity) // 保存实体引用
+      gridEntities.push(entity)
+    }
+
+    // 绘制经线网格
+    for (let lon = -180; lon <= 180; lon += lonStep) {
+      const start = Cesium.Cartesian3.fromDegrees(lon, -90)
+      const end = Cesium.Cartesian3.fromDegrees(lon, 90)
+
+      const entity = viewer.entities.add({
+        polyline: new Cesium.PolylineGraphics({
+          positions: [start, end],
+          material: Cesium.Color.fromCssColorString(color).withAlpha(alpha),
+          width: lineWidth,
+          arcType: Cesium.ArcType.GEODESIC,
+          granularity: Cesium.Math.toRadians(1.0)
+        }),
+        show: true
+      })
+
+      gridEntities.push(entity)
     }
   }
 

@@ -25,8 +25,20 @@ export default defineConfig({
   server: {
     // 跨域配置
     proxy: {
+      // 代理 /project 模块
       '/project': {
-        target: 'http://127.0.0.1:4523/m1/3408606-1087246-default',
+        target: 'http://127.0.0.1:3000', // 后端服务地址
+        changeOrigin: true, // 是否修改 origin
+      },
+      // 代理 /user 模块
+      '/user': {
+        target: 'http://127.0.0.1:3000', // 后端服务地址
+        changeOrigin: true,
+      },
+      // 代理 /auth 模块
+      '/auth': {
+        target: 'http://127.0.0.1:3000', // 后端服务地址
+        changeOrigin: true,
       },
     }
   },

@@ -10,11 +10,16 @@
 </template>
 
 <script lang="ts" setup>
-const { label, type, size, align } = defineProps<{
-  label: string
-  type: string
-  size: string
-  align: string
+const {
+  label = '',
+  type = 'default',
+  size = 'middle',
+  align = 'right'
+} = defineProps<{
+  label?: string
+  type?: 'default' | 'inline'
+  size?: string
+  align?: 'right'
 }>()
 </script>
 

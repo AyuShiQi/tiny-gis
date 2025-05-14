@@ -2,27 +2,38 @@
   <div class="content">
     <div class="header">
       <div class="title">我的项目</div>
-      <vi-button mutate color="purple" @click="() => { createOpen = true }">新建项目</vi-button>
+      <vi-button
+        mutate
+        color="purple"
+        @click="
+          () => {
+            createOpen = true
+          }
+        "
+        >新建项目</vi-button
+      >
     </div>
     <vi-scroll class="project-lis">
       <div class="empty" v-if="projectList.length === 0">
-        <EmptyIcon/>
+        <EmptyIcon />
       </div>
       <div class="project-content" v-else>
         <project-item
-        v-for="(proj, index) in projectList":key="proj.id"
-        :proj="proj"
-        :index="index"
-        @delete="openDelete"
-        @rename="openRename"
-        @detail="openDetail"
-        @jump="handleJump"/>
+          v-for="(proj, index) in projectList"
+          :key="proj.id"
+          :proj="proj"
+          :index="index"
+          @delete="openDelete"
+          @rename="openRename"
+          @detail="openDetail"
+          @jump="handleJump"
+        />
       </div>
     </vi-scroll>
   </div>
-  <delete-dialog v-model="deleteOpen" :target="target"/>
-  <create-dialog v-model="createOpen" @createFinish="handleCreateFinish"/>
-  <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete"/>
+  <delete-dialog v-model="deleteOpen" :target="target" />
+  <create-dialog v-model="createOpen" @createFinish="handleCreateFinish" />
+  <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete" />
   <vi-dialog v-model="renameOpen" title="重命名" :toSure="handleRename">
     <vi-input v-model="renameVal" type="button" round class="rename-ipt" />
   </vi-dialog>
@@ -37,11 +48,11 @@
     </div>
     <div class="line">
       <span class="title">创建时间：</span>
-      <span class="desc">{{ target?.createTime }}</span>
+      <span class="desc">{{ stringDateToStringFormat(target?.createTime) }}</span>
     </div>
     <div class="line">
       <span class="title">更新时间：</span>
-      <span class="desc">{{ target?.updateTime }}</span>
+      <span class="desc">{{ stringDateToStringFormat(target?.updateTime) }}</span>
     </div>
   </vi-dialog>
 </template>
@@ -53,10 +64,11 @@ import ProjectItem from '@/components/project-item/index.vue'
 import DeleteDialog from '@/components/delete-dialog/index.vue'
 import CreateDialog from '@/components/create-dialog/index.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { deleteProj, getProjs, renameProj } from '@/network/project';
+import { deleteProj, getProjs, renameProj } from '@/network/project'
 import { ViMessage } from 'viog-ui'
-import { ListProject } from '@/interface/project';
-import router from '@/router';
+import { ListProject } from '@/interface/project'
+import router from '@/router'
+import { stringDateToStringFormat } from '@/utils/date'
 
 const projectList = reactive<ListProject[]>([])
 const targetIndex = ref(-1)
@@ -122,17 +134,16 @@ const handleDelete = () => {
     return false
   }
 
-  // TODO
   deleteProj({
-    token: '',
     id: target.value.id
-  }).then(() => {
-    ViMessage.append('删除成功', 2000)
-    // TODO: 更新列表
-    queryProjList()
-  }).catch(() => {
-    ViMessage.append('删除失败', 2000)
   })
+    .then(() => {
+      ViMessage.append('删除成功', 2000)
+      queryProjList()
+    })
+    .catch(() => {
+      ViMessage.append('删除失败', 2000)
+    })
 
   return true
 }
@@ -153,14 +164,16 @@ const handleRename = () => {
   }
 
   renameProj({
-    token: '',
-    id: renameVal.value,
-    title: target.value.title
-  }).then(() => {
-    ViMessage.append('操作成功', 2000)
-  }).catch(() => {
-    ViMessage.append('操作失败', 2000)
+    id: target.value.id,
+    title: renameVal.value
   })
+    .then(() => {
+      ViMessage.append('操作成功', 2000)
+      queryProjList()
+    })
+    .catch(() => {
+      ViMessage.append('操作失败', 2000)
+    })
 
   return true
 }

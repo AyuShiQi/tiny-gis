@@ -25,15 +25,67 @@
         "
       />
     </div>
+    <vi-row v-show="isRoaming" gap="8px" justify="flex-start" class="left-box">
+      <vi-button
+        color="purple"
+        mutate
+        @click="
+          () => {
+            isRoaming = false
+            roamer?.stop()
+          }
+        "
+        >退出漫游</vi-button
+      >
+      <vi-button
+        v-show="isFlying"
+        color="purple"
+        mutate
+        @click="
+          () => {
+            roamer?.stop()
+          }
+        "
+        >暂停漫游</vi-button
+      >
+      <vi-button
+        v-show="!isFlying"
+        color="purple"
+        mutate
+        @click="
+          () => {
+            roamer?.start()
+          }
+        "
+        >继续漫游</vi-button
+      >
+    </vi-row>
+    <div v-show="isRoaming" class="right-box">
+      <form-item style="--vi-form-label-width: 6em" label="飞行高度(米)">
+        <vi-num-input v-model="flyingHeight" :min="10" :max="Math.max((target?.radius ?? 10) * 2, 10)" :unit="10" type="button" />
+      </form-item>
+    </div>
+    <div v-show="isRoaming" class="bottom-box">目标飞行点: {{ flyingTargetView }}</div>
     <div id="cesiumContainer"></div>
-    <vi-drawer class="gis-drawer left-drawer" v-model="leftOpen" direction="left">
+    <vi-drawer class="gis-drawer left-drawer" v-model="leftOpen" direction="left" v-show="!isRoaming">
       <div class="title">
         <div>项目操作</div>
         <vi-button mutate color="purple">保存</vi-button>
       </div>
       <div class="btns">
         <vi-button color="purple" @click="() => rebackOrigin(1)">回到原点</vi-button>
-        <vi-button color="purple">场景漫游</vi-button>
+        <vi-button
+          color="purple"
+          @click="
+            () => {
+              if (target && roamer) {
+                isRoaming = true
+                roamer.start()
+              }
+            }
+          "
+          >场景漫游</vi-button
+        >
       </div>
       <div class="global-data">
         <form-item label="坐标原点">
@@ -59,7 +111,7 @@
             <vi-color-select v-model="distanceColor" />
           </form-item>
         </vi-row>
-        <vi-row justify="flex-start" gap="16px">
+        <!-- <vi-row justify="flex-start" gap="16px">
           <form-item label="显示网格" type="inline">
             <vi-switch v-model="showGrid" />
           </form-item>
@@ -74,29 +126,50 @@
               {{ i }}
             </vi-option>
           </vi-select>
-        </form-item>
-        <!-- <vi-row justify="flex-start" gap="16px">
+        </form-item> -->
+        <vi-row justify="flex-start" gap="16px">
           <form-item style="--vi-form-label-width: 5em" label="显示天空盒" type="inline">
             <vi-switch v-model="showSkybox" />
           </form-item>
           <form-item label="天空颜色" type="inline" v-show="!showSkybox">
-            <vi-color-select :modelValue="skyColor" />
+            <vi-color-select v-model="skyColor" />
           </form-item>
-          <form-item label="天空盒" type="inline" v-show="showSkybox">
-            <vi-select type="button" :modelValue="skyboxName">
+          <form-item style="--vi-form-label-width: 3em" label="天空盒" type="inline" v-show="showSkybox">
+            <vi-select style="--vi-select-width: 80px" type="button" v-model="skyboxName">
               <vi-option v-for="v in skyBoxOpts" :value="v" :key="v">{{ v }}</vi-option>
             </vi-select>
           </form-item>
-        </vi-row> -->
+        </vi-row>
         <form-item style="--vi-form-label-width: 5em" label="显示大气层">
-          <vi-switch :modelValue="showSkyAtmosphere" />
+          <vi-switch v-model="showSkyAtmosphere" />
         </form-item>
         <form-item label="地表颜色" v-show="!target?.layers">
           <vi-color-select v-model="layersColor" />
         </form-item>
       </div>
+      <div class="title">模型模板</div>
+      <vi-scroll class="module-scroll">
+        <div>矩形</div>
+        <div>椭圆</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+        <div>模型1</div>
+      </vi-scroll>
     </vi-drawer>
-    <vi-drawer class="gis-drawer" v-model="rightOpen"></vi-drawer>
+    <vi-drawer class="gis-drawer" v-model="rightOpen" v-show="!isRoaming"></vi-drawer>
   </div>
   <vi-dialog title="设置" v-model="settingOpen" class="setting-dialog" noUnsure>
     <div class="line">
@@ -145,7 +218,7 @@
 <script lang="ts" setup>
 import * as Cesium from 'cesium'
 import DeleteDialog from '@/components/delete-dialog/index.vue'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '@/router'
 import { Message } from 'viog-ui'
@@ -154,9 +227,10 @@ import { Project } from '@/interface/project'
 import { unixToStringFormat } from '@/utils/date'
 import { initModelRegistry } from '@/global/module'
 import { workStation } from '@/global/moduleJson'
-import FormItem from '@/components/form-item'
+import FormItem from '@/components/form-item/index.vue'
 import { initGrid, paintCircle, paintGrid, toggleGridVisibility, setGridColor, setCircleColor } from '@/global/grid'
 import { initProjectViewer, gridCellOption, setSkyBoxVisible, setSkyBoxColor, setSkyAtmosphereVisible, setSkyBox, skyBoxOpts } from '@/global/project'
+import { RandomSceneRoamer } from '@/global/camera'
 
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
@@ -180,6 +254,15 @@ const gridEntities = ref(initGrid())
 const distanceCircle = ref<Cesium.Entity>()
 /** 模型控制 */
 const modelControl = ref<ReturnType<typeof initModelRegistry>>()
+/** 漫游控件 */
+const roamer = ref<RandomSceneRoamer>()
+/** 正在漫游状态 */
+const isRoaming = ref(false)
+/** 正在漫游飞行中 */
+const isFlying = ref(false)
+/** 飞行目标 */
+const flyingTarget = ref<Cesium.Cartographic>()
+const flyingHeight = ref<number>(100)
 
 // 表单储存数据
 const showDistance = ref(false)
@@ -193,6 +276,14 @@ const skyboxName = ref('默认')
 const skyColor = ref('#000')
 const showSkyAtmosphere = ref(false)
 
+// const oldGridSize = ref(0)
+
+const flyingTargetView = computed(() => {
+  if (!flyingTarget.value) return '无'
+  const { longitude, latitude, height } = flyingTarget.value
+  return `(${Cesium.Math.toDegrees(longitude)}, ${Cesium.Math.toDegrees(latitude)}, ${height})`
+})
+
 /** 更新网格宽度 */
 const updateGrid = (newSize: number) => {
   if (baseViewer.value && target.value) {
@@ -202,75 +293,91 @@ const updateGrid = (newSize: number) => {
       baseOrigin: target.value.coordinates,
       squareSize: 2 * target.value.radius,
       gridSize: newSize,
-      defaultShow: showGrid.value
+      defaultShow: showGrid.value,
+      color: gridColor.value
     })
   }
 }
 
+const updateRoameTarget = (t: Cesium.Cartographic) => {
+  flyingTarget.value = t
+}
+
 /** 设置地球表面颜色 */
 const setLayersColor = (hex: string) => {
-  console.log('1')
   if (baseViewer.value) {
     baseViewer.value.scene.globe.baseColor = Cesium.Color.fromCssColorString(hex)
   }
 }
 
-watch(showDistance, () => {
-  if (distanceCircle.value) {
-    distanceCircle.value.show = showDistance.value
+watch(showDistance, newValue => {
+  if (baseViewer.value && distanceCircle.value && newValue !== undefined) {
+    console.log('enter')
+    distanceCircle.value.show = newValue
   }
 })
 
-watch(showGrid, () => {
-  if (gridEntities.value) {
-    toggleGridVisibility(gridEntities.value, showGrid.value)
+watch(flyingHeight, newValue => {
+  if (roamer.value) {
+    roamer.value.setHeight(newValue)
   }
 })
 
-watch(gridCellSize, () => {
-  updateGrid(gridCellSize.value)
-})
+// watch(showGrid, newValue => {
+//   if (baseViewer.value && gridEntities.value) {
+//     toggleGridVisibility(gridEntities.value, newValue)
+//   }
+// })
 
-watch(layersColor, () => {
-  setLayersColor(layersColor.value)
-})
+// watch(gridCellSize, newValue => {
+//   if (oldGridSize.value !== newValue) {
+//     oldGridSize.value = newValue
+//     updateGrid(newValue)
+//   }
+// })
 
-watch(distanceColor, () => {
-  if (distanceCircle.value) {
-    setCircleColor(distanceCircle.value, distanceColor.value)
-  }
-})
+// watch(gridColor, newVal => {
+//   if (baseViewer.value && gridEntities.value) {
+//     setGridColor(gridEntities.value, newVal)
+//   }
+// })
 
-watch(gridColor, () => {
-  if (gridEntities.value) {
-    setGridColor(gridEntities.value, gridColor.value)
-  }
-})
-
-watch(showSkybox, () => {
+watch(layersColor, newVal => {
   if (baseViewer.value) {
-    setSkyBoxVisible(baseViewer.value, showSkybox.value, {
+    setLayersColor(newVal)
+  }
+})
+
+watch(distanceColor, newVal => {
+  if (baseViewer.value && distanceCircle.value) {
+    setCircleColor(distanceCircle.value, newVal)
+  }
+})
+
+watch(showSkybox, newVal => {
+  if (baseViewer.value && newVal && skyColor.value) {
+    setSkyBoxVisible(baseViewer.value, newVal, {
       hex: skyColor.value,
       skyBoxName: skyboxName.value
     })
   }
 })
 
-watch(skyboxName, () => {
+watch(skyboxName, newVal => {
   if (baseViewer.value) {
-    setSkyBox(baseViewer.value, skyboxName.value)
+    setSkyBox(baseViewer.value, newVal)
   }
 })
 
-watch(skyColor, () => {
-  if (gridEntities.value && target.value && baseViewer.value) {
-    setSkyBoxColor(baseViewer.value, skyColor.value)
+watch(skyColor, newVal => {
+  if (baseViewer.value && gridEntities.value && target.value) {
+    setSkyBoxColor(baseViewer.value, newVal)
   }
 })
 
-watch(showSkyAtmosphere, () => {
+watch(showSkyAtmosphere, newVal => {
   if (baseViewer.value) {
-    setSkyAtmosphereVisible(baseViewer.value, showSkyAtmosphere.value)
+    setSkyAtmosphereVisible(baseViewer.value, newVal)
   }
 })
 
@@ -299,8 +406,13 @@ const rebackOrigin = (duration: number = 2) => {
 }
 
 const initViewer = (tar: Project) => {
+  if (baseViewer.value) {
+    baseViewer.value.destroy() // 清理前一个 Viewer
+  }
+
   // 如果target获取到了
   if (tar) {
+    console.log('init viewer')
     const { globalObj, coordinates, radius } = tar
     // 赋值
     showDistance.value = globalObj.showDistance
@@ -317,58 +429,87 @@ const initViewer = (tar: Project) => {
     const viewer = initProjectViewer('cesiumContainer', tar)
     baseViewer.value = viewer
 
+    // 初始化模型数组
     const mC = initModelRegistry(viewer)
     // modelControl.registerModel(workStation)
     // modelControl.addClickControl(viewer)
 
-    const curEntities = paintGrid(viewer, gridEntities.value, {
-      type: 'grid',
-      unit: 'coordinates',
-      baseOrigin: coordinates,
-      squareSize: 2 * radius,
-      gridSize: globalObj.gridCellSize ?? 10,
-      color: globalObj.gridColor
-    })
+    modelControl.value = mC
+
+    // 初始化范围
     const dc = paintCircle(viewer, coordinates, radius, globalObj.distanceColor)
     dc.show = !!globalObj.showDistance
-
-    if (gridEntities.value) toggleGridVisibility(curEntities, !!globalObj.showGrid)
-
     distanceCircle.value = dc
-    gridEntities.value = curEntities
-    modelControl.value = mC
-    const position = Cesium.Cartesian3.fromDegrees(...coordinates, radius * 2)
-    // 相机直接跳转
+
+    // 初始化大气层
+    setSkyAtmosphereVisible(viewer, globalObj.showSkyAtmosphere)
+
+    // 初始化天空
+    setSkyBoxVisible(viewer, globalObj.showSkybox, {
+      hex: globalObj.skyColor,
+      skyBoxName: globalObj.skyboxName
+    })
+
+    // 初始化网格
+    // const curEntities = paintGrid(viewer, gridEntities.value, {
+    //   type: 'grid',
+    //   unit: 'coordinates',
+    //   baseOrigin: coordinates,
+    //   squareSize: 2 * radius,
+    //   gridSize: globalObj.gridCellSize ?? 10,
+    //   color: globalObj.gridColor
+    // })
+    // if (curEntities) toggleGridVisibility(curEntities, !!globalObj.showGrid)
+    // gridEntities.value = curEntities
+
+    // 初始跳转镜头
     viewer.camera.flyTo({
       duration: 2,
-      // 相机所处的位置
-      destination: position,
-      // 相机角度
-      orientation: {
-        // 默认(0, -90, 0)
-        // 头两边摆
-        heading: Cesium.Math.toRadians(0),
-        // 头左右摆
-        pitch: Cesium.Math.toRadians(-90),
-        // 头上下摇
-        roll: Cesium.Math.toRadians(0)
-      }
+      destination: Cesium.Cartesian3.fromDegrees(...coordinates, radius * 2)
     })
+
+    // 初始化设置漫游控件
+    const rm = new RandomSceneRoamer(viewer, ...coordinates, radius, {
+      startCb: () => {
+        isFlying.value = true
+      },
+      endCb: () => {
+        isFlying.value = false
+        flyingTarget.value = undefined
+      },
+      updateFlyTarget: updateRoameTarget
+    })
+    roamer.value = rm
   }
 }
 
 const queryDetail = async (id: string) => {
   loading.value = true
-  const res = await getProjDetail({
-    token: '',
-    id
-  })
+  try {
+    const res = await getProjDetail({
+      id
+    })
 
-  target.value = res.data
+    if (res.data) {
+      const { id, updateTime, createTime, title, url, coordinates, radius, layers } = res.data
+      target.value = {
+        id,
+        updateTime,
+        createTime,
+        title,
+        url,
+        coordinates,
+        radius,
+        layers
+      } as unknown as Project
 
-  initViewer(res.data)
+      initViewer(res.data)
 
-  loading.value = false
+      loading.value = false
+    }
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 onMounted(() => {
@@ -381,6 +522,17 @@ onMounted(() => {
 
   targetId.value = id as string
   queryDetail(id as string)
+})
+
+onBeforeUnmount(() => {
+  if (baseViewer.value) {
+    baseViewer.value.destroy()
+    baseViewer.value = undefined
+  }
+
+  if (roamer.value) {
+    roamer.value.destroy()
+  }
 })
 </script>
 
