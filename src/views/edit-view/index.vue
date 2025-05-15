@@ -149,24 +149,21 @@
       </div>
       <div class="title">模型模板</div>
       <vi-scroll class="module-scroll">
-        <div>矩形</div>
-        <div>椭圆</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
-        <div>模型1</div>
+        <div class="module-item" v-for="(m, i) in modulesStore.defaultModulesList" :key="m.id">
+          <span>{{ m.name }}.{{ m.type }}</span>
+          <vi-button
+            size="small"
+            type="plain"
+            color="dark"
+            @click="
+              () => {
+                console.log(m.id, '我进来了')
+                handleUseModule(m.id)
+              }
+            "
+            >使用</vi-button
+          >
+        </div>
       </vi-scroll>
     </vi-drawer>
     <vi-drawer class="gis-drawer" v-model="rightOpen" v-show="!isRoaming"></vi-drawer>
@@ -223,7 +220,7 @@ import { useRoute } from 'vue-router'
 import router from '@/router'
 import { Message } from 'viog-ui'
 import { getProjDetail } from '@/network/project'
-import { Project } from '@/interface/project'
+import { DefaultModules, Project } from '@/interface/project'
 import { unixToStringFormat } from '@/utils/date'
 import { initModelRegistry } from '@/global/module'
 import { workStation } from '@/global/moduleJson'
@@ -231,6 +228,9 @@ import FormItem from '@/components/form-item/index.vue'
 import { initGrid, paintCircle, paintGrid, toggleGridVisibility, setGridColor, setCircleColor } from '@/global/grid'
 import { initProjectViewer, gridCellOption, setSkyBoxVisible, setSkyBoxColor, setSkyAtmosphereVisible, setSkyBox, skyBoxOpts } from '@/global/project'
 import { RandomSceneRoamer } from '@/global/camera'
+import { useModuleStore } from '@/store/modules'
+import { getModuleDetail, getModules } from '@/network/module'
+import { ViToast } from 'viog-ui'
 
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
@@ -263,6 +263,8 @@ const isFlying = ref(false)
 /** 飞行目标 */
 const flyingTarget = ref<Cesium.Cartographic>()
 const flyingHeight = ref<number>(100)
+/** 模型列表 */
+const modulesStore = useModuleStore()
 
 // 表单储存数据
 const showDistance = ref(false)
@@ -405,6 +407,7 @@ const rebackOrigin = (duration: number = 2) => {
   }
 }
 
+/** 初始化viewer */
 const initViewer = (tar: Project) => {
   if (baseViewer.value) {
     baseViewer.value.destroy() // 清理前一个 Viewer
@@ -483,6 +486,7 @@ const initViewer = (tar: Project) => {
   }
 }
 
+/** 查询项目细节 */
 const queryDetail = async (id: string) => {
   loading.value = true
   try {
@@ -510,6 +514,18 @@ const queryDetail = async (id: string) => {
   } catch (e) {
     console.log(e)
   }
+}
+
+const handleUseModule = async (id: number) => {
+  console.log(modulesStore, id)
+  if (!modulesStore.moduleMap.has(id)) {
+    loading.value = true
+    await modulesStore.getModuleDetails(id)
+    loading.value = true
+  }
+
+  const curAdd = modulesStore.moduleMap.get(id)
+  console.log(curAdd)
 }
 
 onMounted(() => {

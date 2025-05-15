@@ -7,13 +7,12 @@ export const useProjectStore = defineStore('project', () => {
   const defaultModulesList = ref<DefaultModules[]>([])
 
   const getDefaultModulesList = async (nowToken?: string) => {
-    const res = await getModules({
-      token: '1'
-    })
-
-    if (res.data) {
-      defaultModulesList.value = res.data
-    }
+    // const res = await getModules({
+    //   token: '1'
+    // })
+    // if (res.data) {
+    //   defaultModulesList.value = res.data
+    // }
   }
 
   // TODO:暂时的

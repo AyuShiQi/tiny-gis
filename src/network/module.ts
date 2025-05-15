@@ -1,3 +1,4 @@
+import { GetModuleDetail, GetModules } from '@/interface/project'
 import { request } from '.'
 
 /**
@@ -5,14 +6,14 @@ import { request } from '.'
  */
 export const createModule = (data: {
   name: string
-  detail: string
-  userId: number
+  detail?: string
   file?: File // 可选上传
 }) => {
   const formData = new FormData()
   formData.append('name', data.name)
-  formData.append('detail', data.detail)
-  formData.append('userId', String(data.userId))
+  if (data.detail) {
+    formData.append('detail', data.detail)
+  }
   if (data.file) {
     formData.append('file', data.file)
   }
@@ -34,5 +35,21 @@ export const deleteModule = (id: number) => {
   return request({
     url: `/module/delete/${id}`,
     method: 'delete'
+  })
+}
+
+/** 获取模型列表 */
+export const getModules: GetModules = () => {
+  return request({
+    url: '/module/list',
+    method: 'get'
+  })
+}
+
+/** 获取模型列表 */
+export const getModuleDetail: GetModuleDetail = res => {
+  return request({
+    url: `module/${res.id}`,
+    method: 'get'
   })
 }

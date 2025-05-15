@@ -14,10 +14,10 @@
       >
     </div>
     <vi-scroll class="project-lis">
-      <div class="empty" v-if="projectList.length === 0">
+      <div class="empty" v-if="projectList.length === 0 && !listLoading">
         <EmptyIcon />
       </div>
-      <div class="project-content" v-else>
+      <div class="project-content" v-else-if="!listLoading">
         <project-item
           v-for="(proj, index) in projectList"
           :key="proj.id"
@@ -29,9 +29,9 @@
           @jump="handleJump"
         />
       </div>
+      <vi-loading type="diamond" color="purple" v-show="listLoading" />
     </vi-scroll>
   </div>
-  <delete-dialog v-model="deleteOpen" :target="target" />
   <create-dialog v-model="createOpen" @createFinish="handleCreateFinish" />
   <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete" />
   <vi-dialog v-model="renameOpen" title="重命名" :toSure="handleRename">
@@ -61,7 +61,6 @@
 // @ts-ignore
 import EmptyIcon from '/public/empty.svg?component'
 import ProjectItem from '@/components/project-item/index.vue'
-import DeleteDialog from '@/components/delete-dialog/index.vue'
 import CreateDialog from '@/components/create-dialog/index.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { deleteProj, getProjs, renameProj } from '@/network/project'
@@ -121,7 +120,7 @@ const handleJump = (index: number) => {
   const tar = projectList[index]
 
   if (index < 0 || !tar) {
-    ViMessage.append('删除异常！请刷新重试', 2000)
+    ViMessage.append('跳转异常！请刷新重试', 2000)
     return
   }
 

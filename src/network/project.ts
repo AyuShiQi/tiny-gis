@@ -1,7 +1,7 @@
 import { request } from '.'
 import qs from 'qs'
 
-import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetModules, GetProjDetailRes } from '@/interface/project'
+import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetProjDetailRes, GetModules } from '@/interface/project'
 
 /** 创建项目 */
 export const createProj: CreateProj = res => {
@@ -78,7 +78,7 @@ export const renameProj: RenameProj = res => {
 }
 
 /** 获取场景列表 */
-export const getModules: GetModules = res => {
+export const getModules: GetModules = () => {
   return request({
     url: '/project/modules',
     method: 'get'

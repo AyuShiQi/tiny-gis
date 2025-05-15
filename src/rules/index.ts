@@ -1,3 +1,5 @@
+import { isValidJson } from '@/global/json'
+
 export const titleRules = [{ rule: /./, info: '请输入标题' }]
 
 export const coordinatesRules = [{ rule: /./, info: '请输入坐标' }]
@@ -19,3 +21,14 @@ export const passwordRules = [{ rule: /^[\S]{8,15}$/, info: '密码为8-15个字
 
 export const usernameLRules = [{ rule: /./, info: '请输入用户名' }]
 export const passwordLRules = [{ rule: /./, info: '请输入密码' }]
+
+export const typeRules = [{ rule: /./, info: '请选择模型类型' }]
+
+export const jsonRules = [
+  { rule: /./, info: '请输入json' },
+  {
+    rule: isValidJson,
+    info: '请输入有效的模型JSON'
+  }
+]
+export const fileRules = [{ rule: /./, info: '请选择文件' }]

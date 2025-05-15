@@ -68,11 +68,28 @@ interface RenameProjReq {
   title?: string // 标题
 }
 
-interface GetModulesReq {}
+interface GetModuleDetailReq {
+  id: number
+}
 
 export interface DefaultModules {
   id: number
-  name: 'string'
+  name: string
+  url: string
+  type: string
+  createTime: string
+  updateTime: string
+}
+
+export interface Module {
+  id: number
+  url: string
+  name: string
+  type: string
+  updateTime: string
+  userId?: number | null
+  detail?: string
+  file?: File
 }
 
 export type CreateProjRes = Response<{
@@ -85,6 +102,7 @@ export type DeleteProjRes = Response<any>
 export type UpdateProjRes = Response<any>
 export type RenameProjRes = Response<any>
 export type GetModulesRes = Response<DefaultModules[]>
+export type GetModuleDetailRes = Response<Module>
 
 export type CreateProj = (res: CreateProjReq) => Promise<CreateProjRes>
 export type GetProjs = (res: GetProjsReq) => Promise<GetProjsRes>
@@ -92,4 +110,5 @@ export type GetProjDetail = (res: GetProjDetailReq) => Promise<GetProjDetailRes>
 export type DeleteProj = (res: DeleteProjReq) => Promise<DeleteProjRes>
 export type UpdateProj = (res: UpdateProjReq) => Promise<UpdateProjRes>
 export type RenameProj = (res: RenameProjReq) => Promise<RenameProjRes>
-export type GetModules = (res: GetModulesReq) => Promise<GetModulesRes>
+export type GetModules = () => Promise<GetModulesRes>
+export type GetModuleDetail = (res: GetModuleDetailReq) => Promise<GetModuleDetailRes>
