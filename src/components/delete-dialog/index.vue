@@ -33,7 +33,7 @@ const handleDelete = () => {
     return false
   }
 
-  console.log(props.target.id)
+  // console.log(props.target.id)
 
   deleteProj({
     id: props?.target.id

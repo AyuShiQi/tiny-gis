@@ -26,7 +26,7 @@
 
 <script lang="ts" setup>
 import TextEllipsis from '@/components/text-ellipsis/index.vue'
-import { defineProps, computed } from 'vue'
+import { computed } from 'vue'
 import { ListProject } from '@/interface/project'
 import { stringDateToStringFormat } from '@/utils/date'
 

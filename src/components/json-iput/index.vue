@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { formTargetStateRef } from '@/hooks/form-target-state'
-import { ref, watch, defineProps, defineEmits, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps<{
   name: string

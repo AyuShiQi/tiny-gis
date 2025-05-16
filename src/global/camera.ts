@@ -129,7 +129,7 @@ export class RandomSceneRoamer {
 
   private handleUserInterrupt = () => {
     if (!this.isFlying) return
-    console.log('正在打断')
+    // console.log('正在打断')
     this.stop()
     this.isUserInterrupt = true
   }
@@ -178,7 +178,7 @@ export class RandomSceneRoamer {
         roll: 0
       },
       complete: () => {
-        console.log('完成一次飞行')
+        // console.log('完成一次飞行')
         // 飞行完成后的逻辑
         this.isFlying = false
         if (!this.isUserInterrupt) {
@@ -186,7 +186,7 @@ export class RandomSceneRoamer {
         }
       },
       cancel: () => {
-        console.log('打断了')
+        // console.log('打断了')
         // 如果飞行被打断
         this.isFlying = false
         this.endCb()

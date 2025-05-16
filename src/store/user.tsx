@@ -20,7 +20,7 @@ export const useUserStore = defineStore('user', () => {
       getUserProfile({
         token: token.value
       }).then((data: any) => {
-        console.log(data)
+        // console.log(data)
         if (data.code === 200) {
           userName.value = data.data.username
           id.value = data.data.id

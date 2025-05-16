@@ -28,7 +28,7 @@ export const request = (config: AxiosRequestConfig): any => {
   // 2.响应拦截
   instance.interceptors.response.use(
     res => {
-      console.log(res.data)
+      // console.log(res.data)
       return res.data
     },
     err => {

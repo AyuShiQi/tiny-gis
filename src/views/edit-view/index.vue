@@ -1,8 +1,10 @@
 <template>
   <div class="content">
+    <!-- 加载mask -->
     <div class="loading-mask" v-show="loading || !baseViewer">
       <vi-loading type="diamond" color="purple" />
     </div>
+    <!-- 头部 -->
     <div class="header">
       <div
         class="back"
@@ -25,6 +27,8 @@
         "
       />
     </div>
+    <!-- 漫游控件部分 -->
+    <!-- 漫游控件左 -->
     <vi-row v-show="isRoaming" gap="8px" justify="flex-start" class="left-box">
       <vi-button
         color="purple"
@@ -60,17 +64,21 @@
         >继续漫游</vi-button
       >
     </vi-row>
+    <!-- 漫游控件右 -->
     <div v-show="isRoaming" class="right-box">
       <form-item style="--vi-form-label-width: 6em" label="飞行高度(米)">
         <vi-num-input v-model="flyingHeight" :min="10" :max="Math.max((target?.radius ?? 10) * 2, 10)" :unit="10" type="button" />
       </form-item>
     </div>
+    <!-- 漫游控件底部 -->
     <div v-show="isRoaming" class="bottom-box">目标飞行点: {{ flyingTargetView }}</div>
+    <!-- Cesium框 -->
     <div id="cesiumContainer"></div>
+    <!-- 左抽屉 -->
     <vi-drawer class="gis-drawer left-drawer" v-model="leftOpen" direction="left" v-show="!isRoaming">
       <div class="title">
         <div>项目操作</div>
-        <vi-button mutate color="purple">保存</vi-button>
+        <vi-button mutate color="purple" @click="handleSave">保存</vi-button>
       </div>
       <div class="btns">
         <vi-button color="purple" @click="() => rebackOrigin(1)">回到原点</vi-button>
@@ -147,6 +155,7 @@
           <vi-color-select v-model="layersColor" />
         </form-item>
       </div>
+      <!-- 模型模板 -->
       <div class="title">模型模板</div>
       <vi-scroll class="module-scroll">
         <div class="module-item" v-for="(m, i) in modulesStore.defaultModulesList" :key="m.id">
@@ -165,10 +174,290 @@
         </div>
       </vi-scroll>
     </vi-drawer>
-    <vi-drawer class="gis-drawer" v-model="rightOpen" v-show="!isRoaming">
-      <ModelControl :model="targetModel" />
+    <!-- 右抽屉 -->
+    <vi-drawer class="gis-drawer right-drawer" v-model="rightOpen" v-show="!isRoaming">
+      <div class="title">当前模型列表</div>
+      <!-- 模型数组区域 -->
+      <vi-scroll class="total" color="purple">
+        <div
+          class="model-item"
+          :class="[model.id === targetModel?.jsonData.id ? 'model-item-picked' : '']"
+          v-for="(model, index) in curModelJSONArr"
+          :key="model.id"
+          @click="
+            () => {
+              if (model) {
+                modelControl?.goToTargetModel({
+                  id: model.id
+                })
+              }
+            }
+          "
+        >
+          {{ index + 1 }}：{{ model.label.text }}
+          <span class="small-id">({{ model.id }})</span>
+        </div>
+      </vi-scroll>
+      <!-- 目标模型区 -->
+      <div class="form" v-show="targetModel">
+        <div class="line">
+          <div class="title">目标模型</div>
+          <vi-button
+            mutate
+            color="blue"
+            @click="
+              () => {
+                if (targetModel) {
+                  modelControl?.goToTargetModel({
+                    id: targetModel.jsonData.id
+                  })
+                }
+              }
+            "
+            >定位模型</vi-button
+          >
+        </div>
+        <form-item label="ID">{{ targetModel?.jsonData.id }}</form-item>
+        <form-item label="模型名称">
+          <vi-input
+            type="button"
+            v-model="modelFormData.title"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldText = targetModel.jsonData.label.text
+                  if (modelFormData.title && modelFormData.title !== oldText) {
+                    modelControl?.changeLabelText({
+                      text: modelFormData.title,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.title = oldText
+                  }
+                }
+              }
+            "
+            placeholder="请输入模型名称"
+          />
+        </form-item>
+        <form-item label="展示模型">
+          <vi-switch
+            v-model="modelFormData.show"
+            @change="
+              () => {
+                if (targetModel) {
+                  modelControl?.setVisible({
+                    visible: modelFormData.show,
+                    id: targetModel.jsonData.id
+                  })
+                }
+              }
+            "
+          />
+        </form-item>
+        <form-item label="模型坐标">
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.lon"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldLon = targetModel.jsonData.basePosition[0].toString()
+                  // 检验经度合规性
+                  const lonRight = lonRules.rule.test(modelFormData.lon)
+                  if (modelFormData && lonRight && modelFormData.lon !== oldLon) {
+                    const newBasePosition = [...targetModel.jsonData.basePosition]
+                    newBasePosition[0] = Number(modelFormData.lon)
+
+                    modelControl?.changePosition({
+                      newBasePosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.lon = oldLon
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 经度 </template>
+          </vi-input>
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.lat"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldLat = targetModel.jsonData.basePosition[1].toString()
+                  // 检验经度合规性
+                  const latRight = latRules.rule.test(modelFormData.lat)
+                  if (modelFormData && latRight && modelFormData.lat !== oldLat) {
+                    const newBasePosition = [...targetModel.jsonData.basePosition]
+                    newBasePosition[1] = Number(modelFormData.lat)
+
+                    modelControl?.changePosition({
+                      newBasePosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.lon = oldLat
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 纬度 </template>
+          </vi-input>
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.height"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldheight = targetModel.jsonData.basePosition[2].toString()
+                  // 检验经度合规性
+                  const heightRight = heightRules.rule.test(modelFormData.height)
+                  if (modelFormData && heightRight && modelFormData.height !== oldheight) {
+                    const newBasePosition = [...targetModel.jsonData.basePosition]
+                    newBasePosition[2] = Number(modelFormData.height)
+
+                    modelControl?.changePosition({
+                      newBasePosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.height = oldheight
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 高度 </template>
+            <template #suffix> 米 </template>
+          </vi-input>
+        </form-item>
+        <form-item label="展示标签">
+          <vi-switch
+            v-model="modelFormData.showLabel"
+            @change="
+              () => {
+                if (targetModel) {
+                  modelControl?.changeLabelShow({
+                    visible: modelFormData.showLabel,
+                    id: targetModel.jsonData.id
+                  })
+                }
+              }
+            "
+          />
+        </form-item>
+        <form-item label="标签坐标">
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.labelLon"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldLon = targetModel.jsonData.label.position[0].toString()
+                  // 检验经度合规性
+                  const lonRight = heightRules.rule.test(modelFormData.labelLon)
+                  if (modelFormData && lonRight && modelFormData.labelLon !== oldLon) {
+                    const newPosition = [...targetModel.jsonData.label.position]
+                    newPosition[0] = Number(modelFormData.labelLon)
+
+                    modelControl?.changeLabelPosition({
+                      newPosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.labelLon = oldLon
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 经度偏移 </template>
+            <template #suffix> 米 </template>
+          </vi-input>
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.labelLat"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldLat = targetModel.jsonData.label.position[1].toString()
+                  // 检验经度合规性
+                  const latRight = heightRules.rule.test(modelFormData.labelLat)
+                  if (modelFormData && latRight && modelFormData.labelLat !== oldLat) {
+                    const newPosition = [...targetModel.jsonData.label.position]
+                    newPosition[1] = Number(modelFormData.lat)
+
+                    modelControl?.changeLabelPosition({
+                      newPosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.labelLat = oldLat
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 纬度偏移 </template>
+            <template #suffix> 米 </template>
+          </vi-input>
+          <vi-input
+            class="ipt-c"
+            v-model="modelFormData.labelHeight"
+            type="button"
+            @change="
+              () => {
+                if (targetModel) {
+                  const oldHeight = targetModel.jsonData.label.position[2].toString()
+                  // 检验经度合规性
+                  const heightRight = heightRules.rule.test(modelFormData.labelHeight)
+                  if (modelFormData && heightRight && modelFormData.labelHeight !== oldHeight) {
+                    const newPosition = [...targetModel.jsonData.label.position]
+                    newPosition[2] = Number(modelFormData.labelHeight)
+
+                    modelControl?.changeLabelPosition({
+                      newPosition,
+                      id: targetModel.jsonData.id
+                    })
+                  } else {
+                    modelFormData.labelHeight = oldHeight
+                  }
+                }
+              }
+            "
+          >
+            <template #prefix> 高度偏移 </template>
+            <template #suffix> 米 </template>
+          </vi-input>
+        </form-item>
+        <vi-button
+          color="red"
+          @click="
+            () => {
+              if (targetModel) {
+                modelControl?.removeModel({
+                  id: targetModel.jsonData.id
+                })
+                targetModel = undefined
+              }
+            }
+          "
+          >移除模型</vi-button
+        >
+      </div>
     </vi-drawer>
   </div>
+  <!-- 设置对话框 -->
   <vi-dialog title="设置" v-model="settingOpen" class="setting-dialog" noUnsure>
     <div class="line">
       <div class="title">id</div>
@@ -202,6 +491,7 @@
       >
     </div>
   </vi-dialog>
+  <!-- 删除对话框 -->
   <delete-dialog
     v-model="deleteOpen"
     :target="target"
@@ -216,11 +506,11 @@
 <script lang="ts" setup>
 import * as Cesium from 'cesium'
 import DeleteDialog from '@/components/delete-dialog/index.vue'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '@/router'
 import { Message } from 'viog-ui'
-import { getProjDetail } from '@/network/project'
+import { getProjDetail, updateProj } from '@/network/project'
 import { Module, Project } from '@/interface/project'
 import { stringDateToStringFormat } from '@/utils/date'
 import { initModelRegistry, ModelRegistryEntry } from '@/global/module'
@@ -231,7 +521,8 @@ import { RandomSceneRoamer } from '@/global/camera'
 import { useModuleStore } from '@/store/modules'
 import { ViToast } from 'viog-ui'
 import { parseStandardModuleJSON } from '@/global/json'
-import ModelControl from '@/components/model-control/index.vue'
+import { lonRules, latRules, heightRules } from '@/rules'
+import { ModuleJSON } from '@/interface/module'
 
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
@@ -239,7 +530,7 @@ Cesium.Ion.defaultAccessToken =
 const route = useRoute()
 
 const rightOpen = ref(true)
-const leftOpen = ref(false)
+const leftOpen = ref(true)
 const settingOpen = ref(false)
 const deleteOpen = ref(false)
 const loading = ref(true)
@@ -250,12 +541,13 @@ const target = ref<Project | null>(null)
 // Cesium相关
 const baseViewer = ref<Cesium.Viewer>()
 /** 储存网格实体 */
-const gridEntities = ref(initGrid())
+// const gridEntities = ref(initGrid())
 /** 储存展示范围 */
 const distanceCircle = ref<Cesium.Entity>()
 /** 模型控制 */
 const modelControl = ref<ReturnType<typeof initModelRegistry>>()
 const targetModel = ref<ModelRegistryEntry>()
+const curModelJSONArr = reactive<ModuleJSON[]>([])
 /** 漫游控件 */
 const roamer = ref<RandomSceneRoamer>()
 /** 正在漫游状态 */
@@ -281,7 +573,34 @@ const skyColor = ref('#000')
 const showSkyAtmosphere = ref(false)
 
 // const oldGridSize = ref(0)
+const modelFormData = reactive({
+  title: '',
+  lat: '',
+  lon: '',
+  height: '',
+  labelLat: '',
+  labelLon: '',
+  labelHeight: '',
+  show: true,
+  showLabel: true
+})
 
+watch(targetModel, () => {
+  if (targetModel.value) {
+    const { jsonData } = targetModel.value
+    modelFormData.title = jsonData.label.text
+    modelFormData.show = jsonData.show
+    modelFormData.showLabel = jsonData.label.show
+    modelFormData.lon = jsonData.basePosition[0].toString()
+    modelFormData.lat = jsonData.basePosition[1].toString()
+    modelFormData.height = jsonData.basePosition[2].toString()
+    modelFormData.labelLon = jsonData.label.position[0].toString()
+    modelFormData.labelLat = jsonData.label.position[1].toString()
+    modelFormData.labelHeight = jsonData.label.position[2].toString()
+  }
+})
+
+/** 飞往的目标点 */
 const flyingTargetView = computed(() => {
   if (!flyingTarget.value) return '无'
   const { longitude, latitude, height } = flyingTarget.value
@@ -289,20 +608,21 @@ const flyingTargetView = computed(() => {
 })
 
 /** 更新网格宽度 */
-const updateGrid = (newSize: number) => {
-  if (baseViewer.value && target.value) {
-    paintGrid(baseViewer.value, gridEntities.value, {
-      type: 'grid',
-      unit: 'coordinates',
-      baseOrigin: target.value.coordinates,
-      squareSize: 2 * target.value.radius,
-      gridSize: newSize,
-      defaultShow: showGrid.value,
-      color: gridColor.value
-    })
-  }
-}
+// const updateGrid = (newSize: number) => {
+//   if (baseViewer.value && target.value) {
+//     paintGrid(baseViewer.value, gridEntities.value, {
+//       type: 'grid',
+//       unit: 'coordinates',
+//       baseOrigin: target.value.coordinates,
+//       squareSize: 2 * target.value.radius,
+//       gridSize: newSize,
+//       defaultShow: showGrid.value,
+//       color: gridColor.value
+//     })
+//   }
+// }
 
+/** 更新下一个目标漫游点 */
 const updateRoameTarget = (t: Cesium.Cartographic) => {
   flyingTarget.value = t
 }
@@ -374,7 +694,7 @@ watch(skyboxName, newVal => {
 })
 
 watch(skyColor, newVal => {
-  if (baseViewer.value && gridEntities.value && target.value) {
+  if (baseViewer.value && target.value) {
     setSkyBoxColor(baseViewer.value, newVal)
   }
 })
@@ -409,19 +729,20 @@ const rebackOrigin = (duration: number = 2) => {
   }
 }
 
+/** 设置当前目标模型 */
 const setTargetModel = (m: ModelRegistryEntry) => {
   targetModel.value = m
 }
 
 /** 初始化viewer */
-const initViewer = (tar: Project) => {
+const initViewer = async (tar: Project) => {
   if (baseViewer.value) {
     baseViewer.value.destroy() // 清理前一个 Viewer
   }
 
   // 如果target获取到了
   if (tar) {
-    console.log('init viewer')
+    // console.log('init viewer')
     const { globalObj, coordinates, radius } = tar
     // 赋值
     showDistance.value = globalObj.showDistance
@@ -439,9 +760,17 @@ const initViewer = (tar: Project) => {
     baseViewer.value = viewer
 
     // 初始化模型数组
-    const mC = initModelRegistry(viewer, { focusModule: setTargetModel })
-    // modelControl.registerModel(workStation)
-    mC.addClickControl(viewer)
+    const mC = initModelRegistry(viewer, curModelJSONArr, { focusModule: setTargetModel })
+    mC.addClickControl()
+
+    // 初始化modelArr
+    if (tar.modelsArr) {
+      tar.modelsArr.forEach(async jsonData => {
+        await mC.registerModel(jsonData)
+        // 渲染节流
+        await new Promise(res => setTimeout(res, 500))
+      })
+    }
 
     modelControl.value = mC
 
@@ -513,7 +842,7 @@ const queryDetail = async (id: string) => {
         layers
       } as unknown as Project
 
-      initViewer(res.data)
+      await initViewer(res.data)
 
       loading.value = false
     }
@@ -522,9 +851,9 @@ const queryDetail = async (id: string) => {
   }
 }
 
+/** 向项目添加模型 */
 const handleUseModule = async (id: number) => {
   try {
-    console.log(modulesStore.moduleMap.has(id), id)
     let curAdd: Module | null | undefined
 
     if (!modulesStore.moduleMap.has(id)) {
@@ -534,15 +863,43 @@ const handleUseModule = async (id: number) => {
       curAdd = modulesStore.moduleMap.get(id)
     }
 
-    console.log(curAdd, '对了')
     if (curAdd) {
       const entity = parseStandardModuleJSON(target.value?.coordinates!, curAdd)
       modelControl.value!.registerModel(entity)
     }
   } catch (e) {
+    console.log(e)
     ViToast.open('出现未知错误，模型加载失败！')
   } finally {
     loading.value = false
+  }
+}
+
+/** 保存项目 */
+const handleSave = () => {
+  if (target.value?.id) {
+    updateProj({
+      id: target.value.id,
+      globalObj: {
+        showDistance: showDistance.value,
+        showGrid: showGrid.value,
+        gridCellSize: gridCellSize.value,
+        layersColor: layersColor.value,
+        distanceColor: distanceColor.value,
+        gridColor: gridColor.value,
+        showSkybox: showSkybox.value,
+        skyboxName: skyboxName.value,
+        skyColor: skyColor.value,
+        showSkyAtmosphere: showSkyAtmosphere.value
+      },
+      modelsArr: curModelJSONArr
+    })
+      .then(() => {
+        ViToast.open('保存成功')
+      })
+      .then(() => {
+        ViToast.open('保存失败，请稍后重试')
+      })
   }
 }
 

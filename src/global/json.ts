@@ -1,3 +1,4 @@
+import { ModuleJSON } from '@/interface/module'
 import { Module } from '@/interface/project'
 
 export const isValidJson = (json: string) => {
@@ -9,17 +10,27 @@ export const isValidJson = (json: string) => {
   }
 }
 
-export const parseStandardModuleJSON = (positon: [number, number], module: Module) => {
+export const parseStandardModuleJSON = (positon: [number, number], module: Module): ModuleJSON => {
   if (module.type === 'json') {
     const json = JSON.parse(module.detail!)
-    return {
+    const curJson = {
+      show: true,
       unit: 'coordinates',
       basePosition: [...positon, 0],
-      ...json
+      objects: json.objects,
+      label: {
+        id: 'label',
+        type: 'label',
+        show: true,
+        ...json.label
+      }
     }
+
+    return curJson as ModuleJSON
   }
 
   return {
+    show: true,
     unit: 'coordinates',
     basePosition: [...positon, 0],
     objects: [
@@ -27,15 +38,17 @@ export const parseStandardModuleJSON = (positon: [number, number], module: Modul
         id: 'module',
         type: 'model',
         position: [0, 0, 0],
-        url: module.detail
+        url: module.detail!
       }
     ],
     label: {
+      id: 'label',
       type: 'label',
       text: module.name,
       position: [0, 0, 1],
       font: '24px sans-serif',
-      color: 'black'
+      color: 'black',
+      show: true
     }
-  }
+  } as ModuleJSON
 }

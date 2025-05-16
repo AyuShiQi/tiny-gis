@@ -61,7 +61,7 @@ interface DeleteProjReq {
   id: Project['id']
 }
 
-type UpdateProjReq = {} & Project
+type UpdateProjReq = Pick<Project, 'id' | 'globalObj' | 'modelsArr'>
 
 interface RenameProjReq {
   id: Project['id']

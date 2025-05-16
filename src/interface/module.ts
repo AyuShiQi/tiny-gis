@@ -9,13 +9,6 @@ export interface ModuleEntity {
   createTime: string
 }
 
-export interface ModuleLabel {
-  text: string
-  position: [number, number, number]
-  font: string
-  color: string
-}
-
 // 模型组件类型
 export type ModuleObject =
   | {
@@ -24,7 +17,6 @@ export type ModuleObject =
       position: [number, number, number]
       dimensions: [number, number, number]
       color: [number, number, number, number]
-      label?: ModuleLabel
     }
   | {
       id: string
@@ -43,7 +35,11 @@ export interface ModuleJSON {
     id: string
     type: 'label'
     show: boolean
-  } & ModuleLabel
+    text: string
+    position: [number, number, number]
+    font: string
+    color: string
+  }
   scale?: number
   show: boolean
 }

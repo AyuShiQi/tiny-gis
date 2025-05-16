@@ -178,7 +178,7 @@ const handleRename = () => {
 }
 
 const handleCreateFinish = (createRes: boolean, id?: string) => {
-  console.log(createRes)
+  // console.log(createRes)
   if (createRes) {
     // 刷新列表
     queryProjList()
