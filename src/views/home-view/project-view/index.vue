@@ -32,7 +32,7 @@
       <vi-loading type="diamond" color="purple" v-show="listLoading" />
     </vi-scroll>
   </div>
-  <create-dialog v-model="createOpen" @createFinish="handleCreateFinish" />
+  <create-dialog v-if="createOpen" v-model="createOpen" @createFinish="handleCreateFinish" />
   <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete" />
   <vi-dialog v-model="renameOpen" title="重命名" :toSure="handleRename">
     <vi-input v-model="renameVal" type="button" round class="rename-ipt" />

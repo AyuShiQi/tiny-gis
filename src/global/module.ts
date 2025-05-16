@@ -8,16 +8,16 @@ export const highlightLabel = (label: Cesium.Label) => {
   if (!label) return
   // 保存原始颜色和显隐藏
   const originalColor = label.fillColor.clone()
-  const defaultShow = label.show
+  // const defaultShow = label.show
 
   // 设置高亮色
-  label.show = true
+  // label.show = true
   label.fillColor = CesiumColorMapping['light'].clone()
 
   return {
     /** 恢复原始状态 */
     reset() {
-      label.show = defaultShow
+      // label.show = defaultShow
       label.fillColor = originalColor
     }
   }
@@ -26,7 +26,7 @@ export const highlightLabel = (label: Cesium.Label) => {
 /** 添加label */
 const addLabel = (opt: { id: number; scale: number; labelCollection: any; jsonData: ModuleJSON; baseMatrix: Cesium.Matrix4 }) => {
   const { id, scale, labelCollection, jsonData, baseMatrix } = opt
-  const { position, text, font, color } = jsonData.label
+  const { position, text, font, color, show } = jsonData.label
   // 相对位置
   const offset = new Cesium.Cartesian3(...position.map(v => v * scale))
   const labelMatrix = Cesium.Matrix4.multiplyByPoint(baseMatrix, offset, new Cesium.Cartesian3())
@@ -35,7 +35,8 @@ const addLabel = (opt: { id: number; scale: number; labelCollection: any; jsonDa
     text,
     font,
     fillColor: Cesium.Color.fromCssColorString(color),
-    scale: 1
+    scale: 1,
+    show
   })
 
   totalLabel.id = {
@@ -69,8 +70,8 @@ const changeLabelPosition = (opt: { target: ModelRegistryEntry; totalLabel: Cesi
 }
 
 /** 新增primitive */
-const addPrimitive = (opt: { viewer: Cesium.Viewer; id: number; obj: ModuleObject; scale: number; modelMatrix: Cesium.Matrix4 }) => {
-  const { obj, id, viewer, scale, modelMatrix } = opt
+const addPrimitive = (opt: { viewer: Cesium.Viewer; id: number; obj: ModuleObject; scale: number; modelMatrix: Cesium.Matrix4; show: boolean }) => {
+  const { obj, id, viewer, scale, modelMatrix, show } = opt
   if (obj.type === 'box') {
     const dimensions = new Cesium.Cartesian3(...obj.dimensions.map(v => v * scale))
     const color = Cesium.Color.fromBytes(obj.color[0] * 255, obj.color[1] * 255, obj.color[2] * 255, obj.color[3] * 255)
@@ -94,6 +95,7 @@ const addPrimitive = (opt: { viewer: Cesium.Viewer; id: number; obj: ModuleObjec
 
     const primitive = new Cesium.Primitive({
       geometryInstances: instance,
+      show,
       appearance: new Cesium.PerInstanceColorAppearance({ closed: true })
       // 必须设置为 false 以让 Cesium 重新使用更新后的数据
       // releaseGeometryInstances: false
@@ -134,7 +136,8 @@ const changePosition = (opt: { viewer: Cesium.Viewer; target: ModelRegistryEntry
       id,
       obj: nowObj,
       scale,
-      modelMatrix
+      modelMatrix,
+      show: jsonData.show
     })
 
     extra.primitives[index] = newPrimitiy
@@ -178,7 +181,7 @@ const changeMyModelLabelVisible = (label: Cesium.Label, visible: boolean) => {
  * @returns
  */
 const renderRelativeModel = async (jsonData: ModuleJSON, viewer: Cesium.Viewer) => {
-  const { scale = 1, id, unit = 'coordinates' } = jsonData
+  const { scale = 1, id, unit = 'coordinates', show } = jsonData
 
   /** 渲染的基础坐标 */
   const basePosition = Cesium.Cartesian3.fromDegrees(...getPositionbyUnit(jsonData.basePosition, unit))
@@ -203,7 +206,8 @@ const renderRelativeModel = async (jsonData: ModuleJSON, viewer: Cesium.Viewer) 
         id,
         obj,
         scale,
-        modelMatrix
+        modelMatrix,
+        show
       })
 
       primitives.push(primitive)
@@ -259,7 +263,7 @@ export interface ModelRegistryEntry {
 export const initModelRegistry = (
   viewer: Cesium.Viewer,
   /** reactive数组，用来接收当前拥有的JSON数组 */
-  reciveModuleJSONArr: ModuleJSON[],
+  reciveModuleJSONArr: { id: number; name: string }[],
   opt: {
     focusModule: (model: ModelRegistryEntry) => void
   }
@@ -312,7 +316,10 @@ export const initModelRegistry = (
         jsonData,
         extra: backRes
       })
-      reciveModuleJSONArr.push(jsonData)
+      reciveModuleJSONArr.push({
+        id: jsonData.id,
+        name: jsonData.label.text
+      })
     },
     /** 移除模型 */
     removeModel(opt: { index?: number; id?: number }) {
@@ -484,13 +491,9 @@ export const initModelRegistry = (
 
       if (target) {
         target.extra.getTotalLabel.text = text
-
         target.jsonData.label.text = text
 
-        const targetJSON = reciveModuleJSONArr[curIndex]
-        if (targetJSON) {
-          targetJSON.label.text = text
-        }
+        reciveModuleJSONArr[curIndex].name = text
       }
     }
   }

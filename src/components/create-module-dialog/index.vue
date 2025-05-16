@@ -17,7 +17,7 @@
           <vi-form-item label="模型类型" :rules="typeRules" auto>
             <vi-radio-group name="type" v-model="formData.type">
               <vi-radio value="json">json</vi-radio>
-              <vi-radio value="gtlf">gtlf</vi-radio>
+              <vi-radio value="gtlf">gtlf/glb</vi-radio>
             </vi-radio-group>
           </vi-form-item>
           <vi-form-item label="JSON" v-show="formData.type === 'json'" :rules="jsonRules" auto>
@@ -36,7 +36,7 @@
               name="file"
               :maximum="1"
               replace
-              accept=".gltf"
+              accept=".gltf,.glb"
             >
               <vi-upload-choose>
                 <vi-button color="purple">点击上传文件</vi-button>
@@ -62,6 +62,7 @@ import { ViMessage } from 'viog-ui'
 import JsonInput from '@/components/json-iput/index.vue'
 import { isValidJson } from '@/global/json'
 import { createModule } from '@/network/module'
+import { renderToImage } from '@/global/module-data'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -108,10 +109,18 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
 
   createLoading.value = true
   try {
+    const base64Img = await renderToImage({
+      jsonConfig: formData.type === 'json' ? formData.detail : undefined,
+      gltfUrl: formData.type === 'gtlf' ? formData.file : undefined,
+      width: 200,
+      height: 100
+    })
+
     const res = await createModule({
       name: formData.title,
       detail: formData.type === 'json' ? formData.detail : undefined,
-      file: formData.type === 'gtlf' ? formData.file : undefined
+      file: formData.type === 'gtlf' ? formData.file : undefined,
+      img: base64Img
     })
 
     if (res?.code === 200) {
@@ -122,7 +131,8 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
       ViMessage.append('创建失败，请重试', 2000)
       emit('createFinish', false)
     }
-  } catch {
+  } catch (e) {
+    console.log(e)
     ViMessage.append('创建失败，请重试', 2000)
     emit('createFinish', false)
   } finally {

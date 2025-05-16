@@ -98,10 +98,10 @@
       <div class="global-data">
         <form-item label="坐标原点">
           <vi-input disabled :modelValue="target?.coordinates[0]" type="button">
-            <template #prefix> 偏移 </template>
+            <template #prefix> 经度 </template>
           </vi-input>
           <vi-input disabled :modelValue="target?.coordinates[1]" type="button">
-            <template #prefix> 偏移 </template>
+            <template #prefix> 纬度 </template>
           </vi-input>
         </form-item>
         <form-item label="范围半径">
@@ -194,7 +194,7 @@
             }
           "
         >
-          {{ index + 1 }}：{{ model.label.text }}
+          {{ index + 1 }}：{{ model.name }}
           <span class="small-id">({{ model.id }})</span>
         </div>
       </vi-scroll>
@@ -547,7 +547,7 @@ const distanceCircle = ref<Cesium.Entity>()
 /** 模型控制 */
 const modelControl = ref<ReturnType<typeof initModelRegistry>>()
 const targetModel = ref<ModelRegistryEntry>()
-const curModelJSONArr = reactive<ModuleJSON[]>([])
+const curModelJSONArr = reactive<{ id: number; name: string }[]>([])
 /** 漫游控件 */
 const roamer = ref<RandomSceneRoamer>()
 /** 正在漫游状态 */
@@ -892,12 +892,13 @@ const handleSave = () => {
         skyColor: skyColor.value,
         showSkyAtmosphere: showSkyAtmosphere.value
       },
-      modelsArr: curModelJSONArr
+      modelsArr: modelControl.value?.modelRegistry.map(item => item.jsonData) ?? []
     })
       .then(() => {
         ViToast.open('保存成功')
       })
-      .then(() => {
+      .catch(e => {
+        console.log(e)
         ViToast.open('保存失败，请稍后重试')
       })
   }

@@ -1,7 +1,7 @@
 <template>
   <div class="content">
     <div class="header">
-      <div class="title">我的项目</div>
+      <div class="title">我的模型</div>
       <vi-button
         mutate
         color="purple"
@@ -10,7 +10,7 @@
             createOpen = true
           }
         "
-        >新建项目</vi-button
+        >新建模型</vi-button
       >
     </div>
     <vi-scroll class="project-lis">
@@ -31,7 +31,7 @@
       </div>
       <vi-loading type="diamond" color="purple" v-show="listLoading" />
     </vi-scroll>
-    <create-dialog v-model="createOpen" @createFinish="handleCreateFinish" />
+    <create-dialog v-if="createOpen" v-model="createOpen" @createFinish="handleCreateFinish" />
     <vi-dialog class="dark-dialog" dark v-model="deleteOpen" title="您确认要删除该项目吗" :toSure="handleDelete" />
     <vi-dialog class="dark-dialog" dark v-model="detailOpen" title="项目详情" noSure noUnsure>
       <div class="line">

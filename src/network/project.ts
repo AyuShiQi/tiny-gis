@@ -59,8 +59,8 @@ export const updateProj: UpdateProj = res => {
     method: 'post',
     data: qs.stringify({
       id: res.id,
-      modelsArr: res.modelsArr,
-      globalObj: res.globalObj
+      modelsArr: JSON.stringify(res.modelsArr),
+      globalObj: JSON.stringify(res.globalObj)
     })
   })
 }
