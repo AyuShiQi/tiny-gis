@@ -31,7 +31,6 @@ export type ModuleObject =
       type: 'model'
       position: [number, number, number]
       url: string
-      scale?: number
     }
 
 // 场景 JSON 结构
@@ -43,8 +42,10 @@ export interface ModuleJSON {
   label: {
     id: string
     type: 'label'
+    show: boolean
   } & ModuleLabel
   scale?: number
+  show: boolean
 }
 
 export interface ModelLabelId {

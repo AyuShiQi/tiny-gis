@@ -1,4 +1,4 @@
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getModuleDetail, getModules } from '@/network/module'
 import { DefaultModules, Module } from '@/interface/project'
@@ -15,6 +15,7 @@ export const useModuleStore = defineStore('module', () => {
 
       if (res.code) {
         moduleMap.value.set(id, res.data)
+        return res.data
       }
     } catch (e) {
       console.log(e)

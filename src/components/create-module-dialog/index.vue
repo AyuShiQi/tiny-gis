@@ -57,7 +57,6 @@
 
 <script lang="ts" setup>
 import { titleRules, typeRules, jsonRules } from '@/rules'
-import { createProj } from '@/network/project'
 import { reactive, ref } from 'vue'
 import { ViMessage } from 'viog-ui'
 import JsonInput from '@/components/json-iput/index.vue'
@@ -93,8 +92,6 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
     flag = true
   }
 
-  console.log(formData)
-
   if (!formData.type) {
     feedBackMap.set('type', '请选择模型类型')
     flag = true
@@ -109,7 +106,6 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
 
   if (flag) return
 
-  console.log(formData)
   createLoading.value = true
   try {
     const res = await createModule({

@@ -3,7 +3,7 @@ import * as Cesium from 'cesium'
 import { getPositionbyUnit } from './distance'
 import { CesiumColorMapping } from './colorMap'
 
-// 高亮标签
+/** 高亮标签 */
 export const highlightLabel = (label: Cesium.Label) => {
   if (!label) return
   // 保存原始颜色和显隐藏
@@ -23,6 +23,98 @@ export const highlightLabel = (label: Cesium.Label) => {
   }
 }
 
+/** 添加label */
+const addLabel = (opt: { id: number; scale: number; labelCollection: any; jsonData: ModuleJSON; baseMatrix: Cesium.Matrix4 }) => {
+  const { id, scale, labelCollection, jsonData, baseMatrix } = opt
+  const { position, text, font, color } = jsonData.label
+  // 相对位置
+  const offset = new Cesium.Cartesian3(...position.map(v => v * scale))
+  const labelMatrix = Cesium.Matrix4.multiplyByPoint(baseMatrix, offset, new Cesium.Cartesian3())
+  const totalLabel = labelCollection.add({
+    position: labelMatrix,
+    text,
+    font,
+    fillColor: Cesium.Color.fromCssColorString(color),
+    scale: 1
+  })
+
+  totalLabel.id = {
+    id,
+    label: totalLabel // 为标签添加数据，用于后续点击判断
+  } as ModelLabelId
+
+  return totalLabel
+}
+
+/** 移除模型 */
+const removeMyModel = (viewer: Cesium.Viewer, module: ModelRegistryEntryExtra) => {
+  const { labelCollection, primitives, modelEntities } = module
+  viewer.scene.primitives.remove(labelCollection)
+  primitives.forEach(p => viewer.scene.primitives.remove(p))
+  modelEntities.forEach(m => viewer.scene.primitives.remove(m))
+}
+
+/** 改变模型标签位置 */
+const changeLabelPosition = (opt: { totalLabel: Cesium.Label; newPosition: number[] }) => {
+  const { totalLabel, newPosition } = opt
+  const position = Cesium.Cartesian3.fromDegrees(...(newPosition as [number, number, number]))
+  totalLabel.position = position
+}
+
+/** 改变模型位置 */
+const changePosition = (opt: { viewer: Cesium.Viewer; target: ModelRegistryEntry; newBasePosition: number[] }) => {
+  const { viewer, target, newBasePosition } = opt
+  const { jsonData, extra } = target
+  const { scale = 1, unit = 'coordinates' } = jsonData
+  const totalLabel = extra.getTotalLabel
+
+  const basePosition = Cesium.Cartesian3.fromDegrees(...getPositionbyUnit(newBasePosition as [number, number, number], unit))
+  /** 渲染的基础点 */
+  const baseMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(basePosition)
+
+  // 更新 primtity 模型的位置
+  extra.primitives.forEach((p, index) => {
+    const offset = new Cesium.Cartesian3(...jsonData.objects[index].position.map(v => v * scale))
+    const modelMatrix = Cesium.Matrix4.multiplyByTranslation(baseMatrix, offset, new Cesium.Matrix4())
+
+    const instance = p.geometryInstances as Cesium.GeometryInstance
+    if (!instance) return
+    instance.modelMatrix = modelMatrix
+  })
+
+  // 更新 gltf 模型的位置
+  extra.modelEntities.forEach((m, index) => {
+    const offset = new Cesium.Cartesian3(...jsonData.objects[index].position.map(v => v * scale))
+    const newMatrix = Cesium.Matrix4.multiplyByTranslation(baseMatrix, offset, new Cesium.Matrix4())
+    m.modelMatrix = newMatrix
+  })
+
+  // 更新总 label 位置
+  if (jsonData.label && totalLabel) {
+    const offset = new Cesium.Cartesian3(...jsonData.label.position.map(v => v * scale))
+    const newPos = Cesium.Matrix4.multiplyByPoint(baseMatrix, offset, new Cesium.Cartesian3())
+    totalLabel.position = newPos
+  }
+
+  // 通知 Cesium 重新渲染（尤其在 requestRenderMode 模式下）
+  viewer.scene.requestRender()
+}
+
+/** 显隐模型 */
+const changeMyModelVisible = (target: ModelRegistryEntry, visible: boolean) => {
+  const {
+    extra: { primitives, modelEntities }
+  } = target
+
+  primitives.forEach(p => (p.show = visible))
+  modelEntities.forEach(m => (m.show = visible))
+}
+
+/** 显隐标签 */
+const changeMyModelLabelVisible = (label: Cesium.Label, visible: boolean) => {
+  label.show = visible
+}
+
 /**
  * 渲染模型
  * @param jsonData
@@ -30,10 +122,13 @@ export const highlightLabel = (label: Cesium.Label) => {
  * @param scale
  * @returns
  */
-export const renderRelativeModel = (jsonData: ModuleJSON, viewer: Cesium.Viewer) => {
+const renderRelativeModel = (jsonData: ModuleJSON, viewer: Cesium.Viewer) => {
   const { scale = 1, id, unit = 'coordinates' } = jsonData
 
+  /** 渲染的基础坐标 */
   const basePosition = Cesium.Cartesian3.fromDegrees(...getPositionbyUnit(jsonData.basePosition, unit))
+
+  /** 渲染的基础点 */
   const baseMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(basePosition)
   const primitives: MyPrimitive[] = []
   const modelEntities: Cesium.Model[] = []
@@ -41,27 +136,6 @@ export const renderRelativeModel = (jsonData: ModuleJSON, viewer: Cesium.Viewer)
   // 创建 LabelCollection 用于标签
   const labelCollection = viewer.scene.primitives.add(new Cesium.LabelCollection())
   let totalLabel: Cesium.Label
-
-  primitives.push(labelCollection)
-
-  /** 添加总label */
-  const addLabel = (labelData: ModuleJSON['label']) => {
-    const { position, text, font, color } = labelData
-    // 相对位置
-    const offset = new Cesium.Cartesian3(...position.map(v => v * scale))
-    const labelMatrix = Cesium.Matrix4.multiplyByPoint(baseMatrix, offset, new Cesium.Cartesian3())
-    totalLabel = labelCollection.add({
-      position: labelMatrix,
-      text,
-      font,
-      fillColor: Cesium.Color.fromCssColorString(color),
-      scale: 1
-    })
-    totalLabel.id = {
-      id,
-      label: totalLabel // 为标签添加数据，用于后续点击判断
-    } as ModelLabelId
-  }
 
   jsonData.objects.forEach(obj => {
     // 相对位置
@@ -91,93 +165,69 @@ export const renderRelativeModel = (jsonData: ModuleJSON, viewer: Cesium.Viewer)
 
       const primitive = new Cesium.Primitive({
         geometryInstances: instance,
-        appearance: new Cesium.PerInstanceColorAppearance({ closed: true })
+        appearance: new Cesium.PerInstanceColorAppearance({ closed: true }),
+        // 必须设置为 false 以让 Cesium 重新使用更新后的数据
+        releaseGeometryInstances: false
       }) as MyPrimitive
 
       ;(primitive.geometryInstances as Cesium.GeometryInstance).id.model = primitive
+
       primitives.push(viewer.scene.primitives.add(primitive))
-
-      // 如果该模型有标签，添加标签
-      if (obj.label) {
-        const { label } = obj
-        labelCollection.add({
-          id,
-          position: Cesium.Cartesian3.fromDegrees(label.position[0], label.position[1], label.position[2]),
-          text: label.text,
-          font: label.font,
-          fillColor: Cesium.Color.fromCssColorString(label.color),
-          scale: 1.0
-        })
-      }
-
-      viewer.scene.primitives.add(
-        new Cesium.Primitive({
-          geometryInstances: instance,
-          appearance: new Cesium.PerInstanceColorAppearance({ closed: true })
-        })
-      )
     }
 
+    // 如果是model的话
     if (obj.type === 'model') {
-      Cesium.Model.fromGltfAsync({
+      const model = Cesium.Model.fromGltf({
+        id: {
+          model: null,
+          id
+        },
         url: obj.url,
         modelMatrix,
-        scale: (obj.scale ?? 1.0) * scale
-      }).then(model => {
-        viewer.scene.primitives.add(model)
-        modelEntities.push(model)
+        scale: (scale ?? 1.0) * scale
       })
+
+      model.id.model = model
+
+      modelEntities.push(viewer.scene.primitives.add(model))
     }
   })
 
   // 如果是整体模型名称标签
   if (jsonData.label) {
-    addLabel(jsonData.label)
+    totalLabel = addLabel({
+      id,
+      scale,
+      labelCollection,
+      jsonData,
+      baseMatrix
+    })
   }
 
   return {
     primitives,
     modelEntities,
-    /** 移除模型 */
-    remove: () => {
-      primitives.forEach(p => viewer.scene.primitives.remove(p))
-      modelEntities.forEach(m => viewer.scene.primitives.remove(m))
-    },
-    /** 设置显隐 */
-    setVisible: (visible: boolean) => {
-      primitives.forEach(p => (p.show = visible))
-      modelEntities.forEach(m => (m.show = visible))
-    },
-    /** 更新label */
-    updateLabel: (opt: ModuleJSON['label']) => {
-      if (totalLabel) {
-        labelCollection.remove(totalLabel)
-        addLabel(opt)
-      } else {
-        addLabel(opt)
-      }
-    },
-    /** 修改label显隐 */
-    changeLabelShow: (visible: boolean) => {
-      if (totalLabel) {
-        totalLabel.show = visible
-      }
-    },
+    labelCollection,
     get getTotalLabel() {
       return totalLabel
     }
   }
 }
 
+export type ModelRegistryEntryExtra = ReturnType<typeof renderRelativeModel>
+/** 注册的Module实体 */
 export interface ModelRegistryEntry {
-  primitive: Cesium.Primitive[]
-  entity: Cesium.Model[]
   jsonData: ModuleJSON
-  extra: ReturnType<typeof renderRelativeModel>
+  extra: ModelRegistryEntryExtra
 }
 
 /** 注册全局Module数组 */
-export const initModelRegistry = (viewer: Cesium.Viewer) => {
+export const initModelRegistry = (
+  viewer: Cesium.Viewer,
+  opt: {
+    focusModule: (model: ModelRegistryEntry) => void
+  }
+) => {
   // 全局ModelRegister，记录模型对应JSON
   const modelRegistry: ModelRegistryEntry[] = []
   const highlightLabels: ReturnType<typeof highlightLabel>[] = []
@@ -197,16 +247,33 @@ export const initModelRegistry = (viewer: Cesium.Viewer) => {
     return modelRegistry.find(model => model.jsonData.id === id)?.extra.getTotalLabel
   }
 
+  /** 根据下标或id找到模型数据 */
+  const findModelByIndexOrId = (opt: { index?: number; id?: number }) => {
+    let curIndex: number = -1
+
+    if (opt.id) {
+      curIndex = findModelIndexById(opt.id)
+    } else if (opt.index) {
+      curIndex = opt.index
+    }
+
+    if (curIndex < 0) return
+
+    return modelRegistry[curIndex]
+  }
+
   return {
     /** 模型数组 */
     modelRegistry,
     /** 注册模型 */
     registerModel(jsonData: ModuleJSON) {
+      if (jsonData.id === undefined) {
+        jsonData.id = Math.floor(10000000 + Math.random() * 90000000)
+      }
+
       const backRes = renderRelativeModel(jsonData, viewer)
       modelRegistry.push({
         jsonData,
-        primitive: backRes.primitives,
-        entity: backRes.modelEntities,
         extra: backRes
       })
     },
@@ -224,18 +291,18 @@ export const initModelRegistry = (viewer: Cesium.Viewer) => {
 
       const target = modelRegistry[curIndex]
       if (target) {
-        target.extra.remove()
+        removeMyModel(viewer, target.extra)
         modelRegistry.splice(curIndex, 1)
       }
     },
     /** 选择模型 */
-    pickRegisteredModel(viewer: Cesium.Viewer, windowPosition: Cesium.Cartesian2) {
+    pickRegisteredModel(windowPosition: Cesium.Cartesian2) {
       const picked = viewer.scene.pick(windowPosition)
       if (!picked) return undefined
-      return modelRegistry.find(entry => entry.primitive === picked.primitive)
+      return modelRegistry.find(entry => entry.extra.primitives === picked.primitive)
     },
     /** 添加点击事件函数 */
-    addClickControl(viewer: Cesium.Viewer) {
+    addClickControl() {
       // 监听点击事件
       return viewer.screenSpaceEventHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
         const pickedObject = viewer.scene.pick(movement.position) // 获取点击的对象
@@ -247,10 +314,11 @@ export const initModelRegistry = (viewer: Cesium.Viewer) => {
 
             // console.log(model, pickedObject)
             if (model) {
+              opt.focusModule(model)
               const { basePosition, unit } = model.jsonData
               const base = getPositionbyUnit(basePosition, unit)
               // 这个地方需要加上basePsoiton
-              const targetPosition = Cesium.Cartesian3.fromDegrees(base[0], base[1], base[2] + 5)
+              const targetPosition = Cesium.Cartesian3.fromDegrees(base[0], base[1], base[2] + 20)
 
               // 跳转到目标位置
               viewer.camera.flyTo({
@@ -278,6 +346,58 @@ export const initModelRegistry = (viewer: Cesium.Viewer) => {
           }
         }
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
+    },
+    /** 更改标签位置 */
+    changeLabelPosition(opt: { newPosition: number[]; index?: number; id?: number }) {
+      const { newPosition } = opt
+
+      const target = findModelByIndexOrId(opt)
+
+      if (target) {
+        changeLabelPosition({
+          totalLabel: target.extra.getTotalLabel,
+          newPosition
+        })
+
+        target.jsonData.label.position = newPosition as [number, number, number]
+      }
+    },
+    /** 更改模型位置 */
+    changePosition(opt: { newBasePosition: number[]; index?: number; id?: number }) {
+      const target = findModelByIndexOrId(opt)
+
+      if (target) {
+        changePosition({
+          viewer,
+          target,
+          newBasePosition: opt.newBasePosition
+        })
+
+        // 修改jsonData
+        target.jsonData.basePosition = opt.newBasePosition as [number, number, number]
+      }
+    },
+    /** 设置显隐 */
+    setVisible: (opt: { visible: boolean; index?: number; id?: number }) => {
+      const { visible } = opt
+      const target = findModelByIndexOrId(opt)
+
+      if (target) {
+        changeMyModelVisible(target, visible)
+
+        target.jsonData.show = visible
+      }
+    },
+    /** 修改label显隐 */
+    changeLabelShow: (opt: { visible: boolean; index?: number; id?: number }) => {
+      const { visible } = opt
+      const target = findModelByIndexOrId(opt)
+
+      if (target) {
+        changeMyModelLabelVisible(target.extra.getTotalLabel, visible)
+
+        target.jsonData.label.show = visible
+      }
     }
   }
 }

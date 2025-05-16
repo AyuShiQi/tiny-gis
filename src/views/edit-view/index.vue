@@ -89,11 +89,11 @@
       </div>
       <div class="global-data">
         <form-item label="坐标原点">
-          <vi-input disabled :modelValue="target?.coordinates[1]" type="button">
-            <template #prefix> 经度 </template>
-          </vi-input>
           <vi-input disabled :modelValue="target?.coordinates[0]" type="button">
-            <template #prefix> 纬度 </template>
+            <template #prefix> 偏移 </template>
+          </vi-input>
+          <vi-input disabled :modelValue="target?.coordinates[1]" type="button">
+            <template #prefix> 偏移 </template>
           </vi-input>
         </form-item>
         <form-item label="范围半径">
@@ -157,7 +157,6 @@
             color="dark"
             @click="
               () => {
-                console.log(m.id, '我进来了')
                 handleUseModule(m.id)
               }
             "
@@ -166,7 +165,9 @@
         </div>
       </vi-scroll>
     </vi-drawer>
-    <vi-drawer class="gis-drawer" v-model="rightOpen" v-show="!isRoaming"></vi-drawer>
+    <vi-drawer class="gis-drawer" v-model="rightOpen" v-show="!isRoaming">
+      <ModelControl :model="targetModel" />
+    </vi-drawer>
   </div>
   <vi-dialog title="设置" v-model="settingOpen" class="setting-dialog" noUnsure>
     <div class="line">
@@ -180,12 +181,12 @@
     <vi-divider />
     <div class="line">
       <div class="title">创建时间</div>
-      <div class="desc">{{ unixToStringFormat(target?.createTime) }}</div>
+      <div class="desc">{{ stringDateToStringFormat(target?.createTime) }}</div>
     </div>
     <vi-divider />
     <div class="line">
       <div class="title">更新时间</div>
-      <div class="desc">{{ unixToStringFormat(target?.updateTime) }}</div>
+      <div class="desc">{{ stringDateToStringFormat(target?.updateTime) }}</div>
     </div>
     <vi-divider />
     <div class="line">
@@ -215,22 +216,22 @@
 <script lang="ts" setup>
 import * as Cesium from 'cesium'
 import DeleteDialog from '@/components/delete-dialog/index.vue'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '@/router'
 import { Message } from 'viog-ui'
 import { getProjDetail } from '@/network/project'
-import { DefaultModules, Project } from '@/interface/project'
-import { unixToStringFormat } from '@/utils/date'
-import { initModelRegistry } from '@/global/module'
-import { workStation } from '@/global/moduleJson'
+import { Module, Project } from '@/interface/project'
+import { stringDateToStringFormat } from '@/utils/date'
+import { initModelRegistry, ModelRegistryEntry } from '@/global/module'
 import FormItem from '@/components/form-item/index.vue'
 import { initGrid, paintCircle, paintGrid, toggleGridVisibility, setGridColor, setCircleColor } from '@/global/grid'
 import { initProjectViewer, gridCellOption, setSkyBoxVisible, setSkyBoxColor, setSkyAtmosphereVisible, setSkyBox, skyBoxOpts } from '@/global/project'
 import { RandomSceneRoamer } from '@/global/camera'
 import { useModuleStore } from '@/store/modules'
-import { getModuleDetail, getModules } from '@/network/module'
 import { ViToast } from 'viog-ui'
+import { parseStandardModuleJSON } from '@/global/json'
+import ModelControl from '@/components/model-control/index.vue'
 
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
@@ -254,6 +255,7 @@ const gridEntities = ref(initGrid())
 const distanceCircle = ref<Cesium.Entity>()
 /** 模型控制 */
 const modelControl = ref<ReturnType<typeof initModelRegistry>>()
+const targetModel = ref<ModelRegistryEntry>()
 /** 漫游控件 */
 const roamer = ref<RandomSceneRoamer>()
 /** 正在漫游状态 */
@@ -407,6 +409,10 @@ const rebackOrigin = (duration: number = 2) => {
   }
 }
 
+const setTargetModel = (m: ModelRegistryEntry) => {
+  targetModel.value = m
+}
+
 /** 初始化viewer */
 const initViewer = (tar: Project) => {
   if (baseViewer.value) {
@@ -433,9 +439,9 @@ const initViewer = (tar: Project) => {
     baseViewer.value = viewer
 
     // 初始化模型数组
-    const mC = initModelRegistry(viewer)
+    const mC = initModelRegistry(viewer, { focusModule: setTargetModel })
     // modelControl.registerModel(workStation)
-    // modelControl.addClickControl(viewer)
+    mC.addClickControl(viewer)
 
     modelControl.value = mC
 
@@ -517,15 +523,27 @@ const queryDetail = async (id: string) => {
 }
 
 const handleUseModule = async (id: number) => {
-  console.log(modulesStore, id)
-  if (!modulesStore.moduleMap.has(id)) {
-    loading.value = true
-    await modulesStore.getModuleDetails(id)
-    loading.value = true
-  }
+  try {
+    console.log(modulesStore.moduleMap.has(id), id)
+    let curAdd: Module | null | undefined
 
-  const curAdd = modulesStore.moduleMap.get(id)
-  console.log(curAdd)
+    if (!modulesStore.moduleMap.has(id)) {
+      loading.value = true
+      curAdd = await modulesStore.getModuleDetails(id)
+    } else {
+      curAdd = modulesStore.moduleMap.get(id)
+    }
+
+    console.log(curAdd, '对了')
+    if (curAdd) {
+      const entity = parseStandardModuleJSON(target.value?.coordinates!, curAdd)
+      modelControl.value!.registerModel(entity)
+    }
+  } catch (e) {
+    ViToast.open('出现未知错误，模型加载失败！')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
