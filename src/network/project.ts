@@ -2,6 +2,7 @@ import { request } from '.'
 import qs from 'qs'
 
 import { CreateProj, GetProjs, GetProjDetail, DeleteProj, UpdateProj, RenameProj, GetProjDetailRes, GetModules } from '@/interface/project'
+import { base64ToBlob, generateRandomFilename } from '@/global/module-data'
 
 /** 创建项目 */
 export const createProj: CreateProj = res => {
@@ -54,14 +55,31 @@ export const deleteProj: DeleteProj = res => {
 
 /** 更新项目 */
 export const updateProj: UpdateProj = res => {
+  const { id, img, modelsArr, globalObj } = res
+
+  const formData = new FormData()
+  formData.append('id', id)
+
+  if (img) {
+    const thumbnailBlob = base64ToBlob(img)
+    formData.append('img', new File([thumbnailBlob], generateRandomFilename(), { type: 'image/png' }))
+  }
+
+  if (modelsArr) {
+    formData.append('modelsArr', JSON.stringify(modelsArr))
+  }
+
+  if (globalObj) {
+    formData.append('globalObj', JSON.stringify(res.globalObj))
+  }
+
   return request({
     url: '/project/update',
     method: 'post',
-    data: qs.stringify({
-      id: res.id,
-      modelsArr: JSON.stringify(res.modelsArr),
-      globalObj: JSON.stringify(res.globalObj)
-    })
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    data: formData
   })
 }
 

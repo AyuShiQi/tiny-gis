@@ -877,9 +877,13 @@ const handleUseModule = async (id: number) => {
 
 /** 保存项目 */
 const handleSave = () => {
+  const image = baseViewer.value?.canvas.toDataURL('image/png')
+  console.log(image)
+
   if (target.value?.id) {
     updateProj({
       id: target.value.id,
+      img: image,
       globalObj: {
         showDistance: showDistance.value,
         showGrid: showGrid.value,

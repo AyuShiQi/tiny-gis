@@ -110,7 +110,7 @@ const handleSubmit = async (formMap: Map<string, string>, mapRes: boolean, { res
   createLoading.value = true
   try {
     const base64Img = await renderToImage({
-      jsonConfig: formData.type === 'json' ? formData.detail : undefined,
+      jsonConfig: formData.type === 'json' ? JSON.parse(formData.detail) : undefined,
       gltfUrl: formData.type === 'gtlf' ? formData.file : undefined,
       width: 200,
       height: 100

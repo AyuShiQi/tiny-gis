@@ -12,18 +12,21 @@ export async function renderToImage({
   gltfUrl?: File
   width?: number
   height?: number
-}): Promise<string> {
+}): Promise<string | undefined> {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setSize(width, height)
   renderer.setClearColor(0xffffff, 0) // transparent background
 
   const scene = new THREE.Scene()
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-  camera.position.set(2, 2, 2)
-  camera.lookAt(0, 0, 0)
 
-  const light = new THREE.AmbientLight(0xffffff, 1)
-  scene.add(light)
+  // 默认灯光
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8))
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
+  dirLight.position.set(5, 10, 5)
+  scene.add(dirLight)
+
+  // 模型边界 box
+  const boundingBox = new THREE.Box3()
 
   // Helper: 坐标轴
   // scene.add(new THREE.AxesHelper(1))
@@ -37,30 +40,49 @@ export async function renderToImage({
           color: new THREE.Color(...obj.color.slice(0, 3))
         })
         const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.set(...(obj.position as [number, number, number]))
+        mesh.position.set(obj.position[0], obj.position[1], obj.position[2])
         scene.add(mesh)
+        boundingBox.expandByObject(mesh)
       }
     })
   }
 
+  // 自动设置相机
+  const center = new THREE.Vector3()
+  const size = new THREE.Vector3()
+  boundingBox.getCenter(center)
+  boundingBox.getSize(size)
+
+  const maxDim = Math.max(size.x, size.y, size.z)
+  const cameraDistance = maxDim * 2
+
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+  camera.position.set(center.x + cameraDistance, center.y + cameraDistance, center.z + cameraDistance)
+  camera.lookAt(center)
+  camera.updateProjectionMatrix()
+
   // 添加 GLTF 模型（如果提供）
   if (gltfUrl) {
     const arrayBuffer = await gltfUrl.arrayBuffer()
-    await new Promise<void>((resolve, reject) => {
-      new GLTFLoader().parse(
-        arrayBuffer,
-        '',
-        gltf => {
-          scene.add(gltf.scene)
-          renderer.render(scene, camera)
-          resolve()
-        },
-        error => {
-          console.error(error)
-          resolve()
-        }
-      )
-    })
+    try {
+      await new Promise<void>((resolve, reject) => {
+        new GLTFLoader().parse(
+          arrayBuffer,
+          '',
+          gltf => {
+            scene.add(gltf.scene)
+            renderer.render(scene, camera)
+            resolve()
+          },
+          error => {
+            console.error(error)
+            reject()
+          }
+        )
+      })
+    } catch {
+      return undefined
+    }
   }
 
   renderer.render(scene, camera)

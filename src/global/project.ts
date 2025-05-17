@@ -20,7 +20,12 @@ export const initProjectViewer = (id: string, tar: Project) => {
     sceneModePicker: false, // 模式选择按钮
     baseLayerPicker: false, // 选择图层按钮
     navigationHelpButton: false, // 帮助手册按钮
-    fullscreenButton: false // 全屏按钮
+    fullscreenButton: false, // 全屏按钮
+    contextOptions: {
+      webgl: {
+        preserveDrawingBuffer: true
+      }
+    }
   }
 
   if (!layers) {

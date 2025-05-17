@@ -29,7 +29,7 @@
               <template v-slot:suffix> 米 </template>
             </vi-input>
           </vi-form-item>
-          <vi-form-item label="使用默认场景" :rules:="needModulesRules">
+          <!-- <vi-form-item label="使用默认场景" :rules:="needModulesRules">
             <vi-radio-group name="needModules" v-model="formData.needModules" class="radio-group">
               <vi-radio :value="CreateProjMode.Template">是</vi-radio>
               <vi-radio :value="CreateProjMode.Default">否</vi-radio>
@@ -39,7 +39,7 @@
             <vi-select v-model="formData.modulesID" name="modulesID" type="plain" placeholder="请选择场景" once>
               <vi-option v-for="v in projectStore.defaultModulesList" :key="v.id" :value="v.id">{{ v.name }}</vi-option>
             </vi-select>
-          </vi-form-item>
+          </vi-form-item> -->
           <vi-form-item label="开启地球图层">
             <vi-switch v-model="formData.layers" name="layers"></vi-switch>
           </vi-form-item>

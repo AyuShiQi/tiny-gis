@@ -9,13 +9,15 @@ export const createModule = (data: {
   name: string
   detail?: string
   file?: File // 可选上传(gtlf文件)
-  img: any // 缩略图
+  img?: string // 缩略图
 }) => {
   const formData = new FormData()
   formData.append('name', data.name)
 
-  const thumbnailBlob = base64ToBlob(data.img)
-  formData.append('img', new File([thumbnailBlob], generateRandomFilename(), { type: 'image/png' }))
+  if (data.img) {
+    const thumbnailBlob = base64ToBlob(data.img)
+    formData.append('img', new File([thumbnailBlob], generateRandomFilename(), { type: 'image/png' }))
+  }
 
   if (data.detail) {
     formData.append('detail', data.detail)
