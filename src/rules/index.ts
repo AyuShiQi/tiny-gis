@@ -6,7 +6,7 @@ export const coordinatesRules = [{ rule: /./, info: '请输入坐标' }]
 export const radiusRules = [
   { rule: /./, info: '请输入半径' },
   { rule: /^[1-9]\d*$/, info: '请输入一个正整数' },
-  { rule: /^(?:[1-9]\d{0,6}|10000000)(?:\.\d+)?$/, info: '最大不可超过10000000米' }
+  { rule: /^(?:[1-9]\d{0,6}|10000)(?:\.\d+)?$/, info: '最大不可超过10000米' }
 ]
 
 export const needModulesRules = [{ rule: /./, info: '请选择是否使用场景' }]

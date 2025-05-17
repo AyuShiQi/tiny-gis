@@ -124,7 +124,11 @@ const handleJump = (index: number) => {
     return
   }
 
-  router.push(`/edit/${tar.id}`)
+  if (tar.layers) {
+    router.push(`/editCesium/${tar.id}`)
+  } else {
+    router.push(`/edit/${tar.id}`)
+  }
 }
 
 const handleDelete = () => {

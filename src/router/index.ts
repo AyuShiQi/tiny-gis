@@ -11,6 +11,7 @@ const settingView = () => import('@/views/home-view/setting-view/index.vue')
 const loginView = () => import('@/views/home-view/login-view/index.vue')
 // edit
 const editView = () => import('@/views/edit-view/index.vue')
+const editCesiumView = () => import('@/views/edit-view/index-cesium.vue')
 // my-project
 // const myProjectAllView = () => import('@/views/home-view/childComps/my-project/all-project.vue')
 // const myProjectTableView = () => import('@/views/home-view/childComps/my-project/table-project.vue')
@@ -59,6 +60,11 @@ const router = createRouter({
       path: '/edit/:id',
       meta: { requiresAuth: true },
       component: editView
+    },
+    {
+      path: '/editCesium/:id',
+      meta: { requiresAuth: true },
+      component: editCesiumView
     },
     // {
     //   path: '/login',

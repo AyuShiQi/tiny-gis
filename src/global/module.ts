@@ -253,6 +253,7 @@ const renderRelativeModel = async (jsonData: ModuleJSON, viewer: Cesium.Viewer) 
 }
 
 export type ModelRegistryEntryExtra = Awaited<ReturnType<typeof renderRelativeModel>>
+
 /** 注册的Module实体 */
 export interface ModelRegistryEntry {
   jsonData: ModuleJSON

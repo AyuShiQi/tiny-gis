@@ -119,15 +119,15 @@
             <vi-color-select v-model="distanceColor" />
           </form-item>
         </vi-row>
-        <vi-row justify="flex-start" gap="16px">
+        <!-- <vi-row justify="flex-start" gap="16px">
           <form-item label="显示网格" type="inline">
             <vi-switch v-model="showGrid" />
           </form-item>
-          <!-- <form-item label="网格颜色" type="inline">
+          <form-item label="网格颜色" type="inline">
             <vi-color-select v-model="gridColor" />
-          </form-item> -->
+          </form-item>
         </vi-row>
-        <!-- <form-item label="网格大小">
+        <form-item label="网格大小">
           <vi-select type="button" v-model="gridCellSize">
             <vi-option v-for="i in gridCellOption" :key="i" :value="i">
               <template #suf> 米 </template>
@@ -148,9 +148,9 @@
             </vi-select>
           </form-item>
         </vi-row>
-        <!-- <form-item style="--vi-form-label-width: 5em" label="显示大气层">
+        <form-item style="--vi-form-label-width: 5em" label="显示大气层">
           <vi-switch v-model="showSkyAtmosphere" />
-        </form-item> -->
+        </form-item>
         <form-item label="地表颜色" v-show="!target?.layers">
           <vi-color-select v-model="layersColor" />
         </form-item>
@@ -504,10 +504,8 @@
 </template>
 
 <script lang="ts" setup>
-import * as THREE from 'three'
-import gsap from 'gsap'
+import * as Cesium from 'cesium'
 import DeleteDialog from '@/components/delete-dialog/index.vue'
-import FormItem from '@/components/form-item/index.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '@/router'
@@ -515,15 +513,19 @@ import { Message } from 'viog-ui'
 import { getProjDetail, updateProj } from '@/network/project'
 import { Module, Project } from '@/interface/project'
 import { stringDateToStringFormat } from '@/utils/date'
-import { initModelRegistry, ModelRegistryEntry } from '@/global/module-three'
-import { initGrid, paintCircle, paintGrid, toggleGridVisibility, setGridColor, setCircleColor, drawGrid } from '@/global/grid-three'
-import { initProjectViewer, setSkyBoxVisible, setSkyBoxColor, setSkyBox, ThreeViwer } from '@/global/project-three'
-import { RandomSceneRoamer } from '@/global/camera-three'
+import { initModelRegistry, ModelRegistryEntry } from '@/global/module'
+import FormItem from '@/components/form-item/index.vue'
+import { initGrid, paintCircle, paintGrid, toggleGridVisibility, setGridColor, setCircleColor } from '@/global/grid'
+import { initProjectViewer, gridCellOption, setSkyBoxVisible, setSkyBoxColor, setSkyAtmosphereVisible, setSkyBox, skyBoxOpts } from '@/global/project'
+import { RandomSceneRoamer } from '@/global/camera'
 import { useModuleStore } from '@/store/modules'
 import { ViToast } from 'viog-ui'
 import { parseStandardModuleJSON } from '@/global/json'
 import { lonRules, latRules, heightRules } from '@/rules'
-import { gridCellOption, skyBoxOpts } from '@/global/project'
+import { ModuleJSON } from '@/interface/module'
+
+Cesium.Ion.defaultAccessToken =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5M2I1Nzk5Ni0wNDY0LTRlNzMtYjBmNC1jNWQ4NTc2ZmU5MWMiLCJpZCI6Mjg3NzEyLCJpYXQiOjE3NDI5NTQ1NTB9.PHCh3Myp8BruSMmhDg3qPs3RA5bTfFBFMR8_hGrjZEs'
 
 const route = useRoute()
 
@@ -536,12 +538,12 @@ const loading = ref(true)
 const targetId = ref<string>()
 const target = ref<Project | null>(null)
 
-// Three相关
-const baseViewer = ref<ThreeViwer>()
+// Cesium相关
+const baseViewer = ref<Cesium.Viewer>()
 /** 储存网格实体 */
-const gridEntities = ref(initGrid())
+// const gridEntities = ref(initGrid())
 /** 储存展示范围 */
-const distanceCircle = ref<THREE.Mesh>()
+const distanceCircle = ref<Cesium.Entity>()
 /** 模型控制 */
 const modelControl = ref<ReturnType<typeof initModelRegistry>>()
 const targetModel = ref<ModelRegistryEntry>()
@@ -553,7 +555,7 @@ const isRoaming = ref(false)
 /** 正在漫游飞行中 */
 const isFlying = ref(false)
 /** 飞行目标 */
-const flyingTarget = ref<THREE.Vector3>()
+const flyingTarget = ref<Cesium.Cartographic>()
 const flyingHeight = ref<number>(100)
 /** 模型列表 */
 const modulesStore = useModuleStore()
@@ -570,7 +572,7 @@ const skyboxName = ref('默认')
 const skyColor = ref('#000')
 const showSkyAtmosphere = ref(false)
 
-const oldGridSize = ref(0)
+// const oldGridSize = ref(0)
 const modelFormData = reactive({
   title: '',
   lat: '',
@@ -601,8 +603,8 @@ watch(targetModel, () => {
 /** 飞往的目标点 */
 const flyingTargetView = computed(() => {
   if (!flyingTarget.value) return '无'
-  const { x, y, z } = flyingTarget.value
-  return `(${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`
+  const { longitude, latitude, height } = flyingTarget.value
+  return `(${Cesium.Math.toDegrees(longitude)}, ${Cesium.Math.toDegrees(latitude)}, ${height})`
 })
 
 /** 更新网格宽度 */
@@ -621,21 +623,20 @@ const flyingTargetView = computed(() => {
 // }
 
 /** 更新下一个目标漫游点 */
-const updateRoameTarget = (t: THREE.Vector3) => {
+const updateRoameTarget = (t: Cesium.Cartographic) => {
   flyingTarget.value = t
 }
 
-// TODO
 /** 设置地球表面颜色 */
 const setLayersColor = (hex: string) => {
   if (baseViewer.value) {
-    baseViewer.value.setLayerColor(hex)
+    baseViewer.value.scene.globe.baseColor = Cesium.Color.fromCssColorString(hex)
   }
 }
 
 watch(showDistance, newValue => {
-  if (baseViewer.value && distanceCircle.value) {
-    distanceCircle.value.visible = newValue
+  if (baseViewer.value && distanceCircle.value && newValue !== undefined) {
+    distanceCircle.value.show = newValue
   }
 })
 
@@ -645,16 +646,16 @@ watch(flyingHeight, newValue => {
   }
 })
 
-watch(showGrid, newValue => {
-  if (baseViewer.value && gridEntities.value) {
-    baseViewer.value.grid.visible = newValue
-  }
-})
+// watch(showGrid, newValue => {
+//   if (baseViewer.value && gridEntities.value) {
+//     toggleGridVisibility(gridEntities.value, newValue)
+//   }
+// })
 
 // watch(gridCellSize, newValue => {
 //   if (oldGridSize.value !== newValue) {
 //     oldGridSize.value = newValue
-//     // updateGrid(newValue)
+//     updateGrid(newValue)
 //   }
 // })
 
@@ -680,7 +681,7 @@ watch(showSkybox, newVal => {
   if (baseViewer.value && skyColor.value) {
     setSkyBoxVisible(baseViewer.value, newVal, {
       hex: skyColor.value,
-      skyboxName: skyboxName.value
+      skyBoxName: skyboxName.value
     })
   }
 })
@@ -697,28 +698,31 @@ watch(skyColor, newVal => {
   }
 })
 
-// watch(showSkyAtmosphere, newVal => {
-//   if (baseViewer.value) {
-//     setSkyAtmosphereVisible(baseViewer.value.scene, newVal)
-//   }
-// })
+watch(showSkyAtmosphere, newVal => {
+  if (baseViewer.value) {
+    setSkyAtmosphereVisible(baseViewer.value, newVal)
+  }
+})
 
 /** 回到原点，相机默认视角转至原点高radius * 2处 */
 const rebackOrigin = (duration: number = 2) => {
   if (target.value && baseViewer.value) {
     const { coordinates, radius } = target.value
-
-    const destination = [coordinates[0], coordinates[1], radius * 2]
-
-    const camera = baseViewer.value.camera
-
-    gsap.to(camera.position, {
+    const position = Cesium.Cartesian3.fromDegrees(...coordinates, radius * 2)
+    // 相机直接跳转
+    baseViewer.value.camera.flyTo({
       duration,
-      x: destination[1],
-      y: destination[0],
-      z: destination[2],
-      onUpdate: () => {
-        camera.lookAt(new THREE.Vector3(0, 0, 0)) // 你可以改成看向你想看的点
+      // 相机所处的位置
+      destination: position,
+      // 相机角度
+      orientation: {
+        // 默认(0, -90, 0)
+        // 头两边摆
+        heading: Cesium.Math.toRadians(0),
+        // 头左右摆
+        pitch: Cesium.Math.toRadians(-90),
+        // 头上下摇
+        roll: Cesium.Math.toRadians(0)
       }
     })
   }
@@ -731,6 +735,10 @@ const setTargetModel = (m: ModelRegistryEntry) => {
 
 /** 初始化viewer */
 const initViewer = async (tar: Project) => {
+  if (baseViewer.value) {
+    baseViewer.value.destroy() // 清理前一个 Viewer
+  }
+
   // 如果target获取到了
   if (tar) {
     // console.log('init viewer')
@@ -747,11 +755,12 @@ const initViewer = async (tar: Project) => {
     skyColor.value = globalObj.skyColor
     showSkyAtmosphere.value = globalObj.showSkyAtmosphere
     // 生成viewer
-    const viewer = initProjectViewer(document.getElementById('cesiumContainer')!, tar)
+    const viewer = initProjectViewer('cesiumContainer', tar)
     baseViewer.value = viewer
 
     // 初始化模型数组
-    const mC = initModelRegistry(viewer, curModelJSONArr, setTargetModel)
+    const mC = initModelRegistry(viewer, curModelJSONArr, { focusModule: setTargetModel })
+    mC.addClickControl()
 
     // 初始化modelArr
     if (tar.modelsArr) {
@@ -766,13 +775,16 @@ const initViewer = async (tar: Project) => {
 
     // 初始化范围
     const dc = paintCircle(viewer, coordinates, radius, globalObj.distanceColor)
-    dc.visible = !!globalObj.showDistance
+    dc.show = !!globalObj.showDistance
     distanceCircle.value = dc
+
+    // 初始化大气层
+    setSkyAtmosphereVisible(viewer, globalObj.showSkyAtmosphere)
 
     // 初始化天空
     setSkyBoxVisible(viewer, globalObj.showSkybox, {
       hex: globalObj.skyColor,
-      skyboxName: globalObj.skyboxName
+      skyBoxName: globalObj.skyboxName
     })
 
     // 初始化网格
@@ -788,13 +800,13 @@ const initViewer = async (tar: Project) => {
     // gridEntities.value = curEntities
 
     // 初始跳转镜头
-    // viewer.camera.flyTo({
-    //   duration: 2,
-    //   destination: Cesium.Cartesian3.fromDegrees(...coordinates, radius * 2)
-    // })
+    viewer.camera.flyTo({
+      duration: 2,
+      destination: Cesium.Cartesian3.fromDegrees(...coordinates, radius * 2)
+    })
 
     // 初始化设置漫游控件
-    const rm = new RandomSceneRoamer(viewer.camera, mC.controls, new THREE.Vector3(...coordinates), radius, {
+    const rm = new RandomSceneRoamer(viewer, ...coordinates, radius, {
       startCb: () => {
         isFlying.value = true
       },
@@ -864,7 +876,7 @@ const handleUseModule = async (id: number) => {
 
 /** 保存项目 */
 const handleSave = () => {
-  const image = baseViewer.value?.renderer.domElement.toDataURL('image/png')
+  const image = baseViewer.value?.canvas.toDataURL('image/png')
   console.log(image)
 
   if (target.value?.id) {
@@ -909,7 +921,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (baseViewer.value) {
-    baseViewer.value.destory()
+    baseViewer.value.destroy()
     baseViewer.value = undefined
   }
 

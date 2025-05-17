@@ -21,7 +21,7 @@ export const removeGrid = (viewer: Cesium.Viewer, gridEntities: GridEntities) =>
  * @param centerLat 中心纬度
  * @param totalSide 总边长（米），整个正方形边长为 2x
  * @param cellSize 每个小方格的边长（米），为 y
- * @param options 可选参数
+ * @param opt 可选参数
  */
 const drawSquareGrid = (
   viewer: Cesium.Viewer,

@@ -39,6 +39,7 @@ export type ListProject = {
   createTime: string
   title: string // 标题
   url: string // 图像url
+  layers: boolean
 }
 
 interface CreateProjReq {

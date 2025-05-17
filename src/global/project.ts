@@ -1,5 +1,5 @@
 import { Project } from '@/interface/project'
-import { buildModuleUrl, Color, EllipsoidTerrainProvider, SkyBox, Viewer } from 'cesium'
+import { Color, EllipsoidTerrainProvider, SkyBox, Viewer } from 'cesium'
 import SkyboxMap from '@/assets/skybox/skybox.json'
 
 export const skyBoxOpts = Object.keys(SkyboxMap)
@@ -7,7 +7,6 @@ export const skyBoxOpts = Object.keys(SkyboxMap)
 export const initProjectViewer = (id: string, tar: Project) => {
   // 如果target获取到了
   const {
-    layers,
     globalObj: { skyColor, skyboxName, showSkybox }
   } = tar
 
@@ -28,24 +27,12 @@ export const initProjectViewer = (id: string, tar: Project) => {
     }
   }
 
-  if (!layers) {
-    cesiumOpt.imageryProvider = undefined // 不加载影像图层
-    cesiumOpt.terrainProvider = new EllipsoidTerrainProvider() // 使用默认椭球，不加载地形
-  }
-
   const viewer = new Viewer(id, cesiumOpt)
-
-  if (!layers) {
-    // 手动移除默认图层（Cesium 会自动加一个 Bing Maps 图层）
-    viewer.imageryLayers.removeAll() // 强制清空所有影像图层
-    // 设置纯背景（如白色）
-    viewer.scene.globe.baseColor = Color.WHITE
-    viewer.scene.skyAtmosphere.show = false
-  }
 
   return viewer
 }
 
+/** 获取天空盒纹理 */
 const getSkyBox = (skyboxName: string) => {
   const sources = (SkyboxMap as any)[skyboxName ?? '默认']
 

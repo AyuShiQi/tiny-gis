@@ -1,6 +1,24 @@
 import { ModuleJSON } from '@/interface/module'
 import { Module } from '@/interface/project'
 
+const R = 6378137 // 地球半径，单位米（WGS84标准）
+/**
+ * 经纬度转二维平面坐标（墨卡托投影）
+ */
+export const latLngToMercator = (postion: number[]): [number, number, number] => {
+  const x = R * ((postion[0] * Math.PI) / 180)
+  const y = R * Math.log(Math.tan(Math.PI / 4 + (postion[1] * Math.PI) / 180 / 2))
+
+  return [x, postion[2], y]
+}
+
+/**
+ * 偏移转平面坐标
+ */
+export const parseToMercator = (postion: number[]): [number, number, number] => {
+  return [postion[0], postion[2], postion[1]]
+}
+
 export const isValidJson = (json: string) => {
   try {
     const val = JSON.parse(json)
