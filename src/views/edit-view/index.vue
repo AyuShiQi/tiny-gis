@@ -706,17 +706,15 @@ watch(skyColor, newVal => {
 /** 回到原点，相机默认视角转至原点高radius * 2处 */
 const rebackOrigin = (duration: number = 2) => {
   if (target.value && baseViewer.value) {
-    const { coordinates, radius } = target.value
-
-    const destination = [coordinates[0], coordinates[1], radius * 2]
+    const { radius } = target.value
 
     const camera = baseViewer.value.camera
 
     gsap.to(camera.position, {
       duration,
-      x: destination[1],
-      y: destination[0],
-      z: destination[2],
+      x: 0,
+      y: radius,
+      z: 0,
       onUpdate: () => {
         camera.lookAt(new THREE.Vector3(0, 0, 0)) // 你可以改成看向你想看的点
       }

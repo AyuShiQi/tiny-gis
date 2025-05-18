@@ -118,7 +118,7 @@ export class RandomSceneRoamer {
     }
 
     const currentPos = this.camera.position.clone()
-    const nextPos = this.getNewPosition(currentPos, angle, 100)
+    const nextPos = this.getNewPosition(currentPos, angle, Math.floor(this.height / 2))
     nextPos.y = this.height // 固定高度
 
     this.updateFlyTarget(nextPos)

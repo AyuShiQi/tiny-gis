@@ -194,7 +194,7 @@ export const setSkyBoxColor = (viewer: ThreeViwer, hex: string) => {
     currentBg.dispose()
   }
 
-  viewer.scene.background = new THREE.Color(hex)
+  viewer.scene.background = new THREE.Color(hex.slice(0, 7))
 }
 
 // 天空盒显隐
