@@ -9,7 +9,7 @@ export const latLngToMercator = (postion: number[]): [number, number, number] =>
   const x = R * ((postion[0] * Math.PI) / 180)
   const y = R * Math.log(Math.tan(Math.PI / 4 + (postion[1] * Math.PI) / 180 / 2))
 
-  return [x, postion[2], y]
+  return [x, postion[2] || 0, y]
 }
 
 /**
@@ -26,6 +26,17 @@ export const isValidJson = (json: string) => {
   } catch {
     return false
   }
+}
+
+// 计算相对于 basePosition 的偏移（结果单位：米）
+export const getRelativePosition = (baseLngLat: number[], targetLngLat: number[]): [number, number, number] => {
+  const [baseX, baseY] = latLngToMercator(baseLngLat)
+  const [targetX, targetY] = latLngToMercator(targetLngLat)
+
+  const dx = targetX - baseX
+  const dz = targetY - baseY
+
+  return [dx, targetLngLat[2], dz] // Y轴为高度
 }
 
 export const parseStandardModuleJSON = (positon: [number, number], module: Module): ModuleJSON => {

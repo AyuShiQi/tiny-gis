@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { gsap } from 'gsap'
 
 interface CameraControlOption {
   maxDistance: number
@@ -42,6 +43,10 @@ export const addCameraControl = (camera: THREE.PerspectiveCamera, controls: Orbi
   })
 }
 
+const getRnadom = (x: number) => {
+  return Math.floor(Math.random() * (2 * x + 1)) - x
+}
+
 export class RandomSceneRoamer {
   private camera: THREE.PerspectiveCamera
   private controls: OrbitControls
@@ -53,7 +58,7 @@ export class RandomSceneRoamer {
   private startCb: () => void
   private endCb: () => void
   private updateFlyTarget: (pos: THREE.Vector3) => void
-  private animationFrameId: number | null = null
+  private currentTween?: gsap.core.Tween
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -90,10 +95,6 @@ export class RandomSceneRoamer {
     return pos.distanceTo(this.center)
   }
 
-  private getRandomDirection() {
-    return Math.random() * 2 * Math.PI
-  }
-
   private getNewPosition(current: THREE.Vector3, angleRad: number, distance: number) {
     // 在水平面（X,Z）移动，Y用this.height
     const x = current.x + distance * Math.cos(angleRad)
@@ -104,57 +105,48 @@ export class RandomSceneRoamer {
   private moveOneStep = () => {
     if (this.isFlying || this.isUserInterrupt) return
 
+    this.isFlying = true
+    this.controls.enableRotate = false // 禁止旋转
     const current = this.camera.position.clone()
     const distance = this.getDistanceFromCenter(current)
 
-    let angle = this.getRandomDirection()
+    let angle = 0
 
-    // 超出范围，朝向中心
     if (distance >= this.radius) {
-      const dirToCenter = new THREE.Vector3()
-        .subVectors(this.center, current)
-        .setY(0) // 只在XZ平面方向
-        .normalize()
+      const dirToCenter = new THREE.Vector3().subVectors(this.center, current).setY(0).normalize()
       angle = Math.atan2(dirToCenter.z, dirToCenter.x)
     }
 
-    const nextPos = this.getNewPosition(current, angle, 200) // 移动200米
+    const currentPos = this.camera.position.clone()
+    const nextPos = this.getNewPosition(currentPos, angle, 100)
+    nextPos.y = this.height // 固定高度
+
     this.updateFlyTarget(nextPos)
+    let randomX = getRnadom(100)
+    let randomY = getRnadom(this.height)
+    const randomZ = getRnadom(100)
 
-    this.isFlying = true
-
-    // 使用Tween或动画函数平滑移动相机
-    const duration = 10000 // 10秒
-    const start = performance.now()
-    const startPos = this.camera.position.clone()
-
-    const animate = (time: number) => {
-      const elapsed = time - start
-      const t = Math.min(elapsed / duration, 1)
-
-      const lerpPos = startPos.clone().lerp(nextPos, t)
-      this.camera.position.copy(lerpPos)
-      this.controls.target.copy(this.center)
-      this.controls.update()
-
-      // 使相机朝向移动方向
-      const lookAtPos = nextPos.clone()
-      lookAtPos.y = this.height // 保持高度
-      this.camera.lookAt(lookAtPos)
-
-      if (t < 1 && !this.isUserInterrupt) {
-        this.animationFrameId = requestAnimationFrame(animate)
-      } else {
+    this.currentTween = gsap.to(this.camera.position, {
+      x: nextPos.x,
+      y: nextPos.y,
+      z: nextPos.z,
+      duration: 10,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        // 计算相机应该看的点，让视角保持45度俯视角度
+        const lookAtPos = new THREE.Vector3(this.camera.position.x + randomX, randomY, this.camera.position.z + randomZ)
+        this.camera.lookAt(lookAtPos)
+      },
+      onComplete: () => {
         this.isFlying = false
         if (!this.isUserInterrupt) {
           setTimeout(this.moveOneStep, 100)
         } else {
+          this.controls.enableRotate = true // 恢复旋转
           this.endCb()
         }
       }
-    }
-
-    this.animationFrameId = requestAnimationFrame(animate)
+    })
   }
 
   setHeight(height: number) {
@@ -171,12 +163,10 @@ export class RandomSceneRoamer {
 
   stop() {
     if (!this.isFlying) return
+    this.endCb()
     this.isUserInterrupt = true
     this.isFlying = false
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId)
-      this.animationFrameId = null
-    }
+    this.currentTween?.kill()
   }
 
   destroy() {

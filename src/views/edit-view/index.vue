@@ -751,7 +751,7 @@ const initViewer = async (tar: Project) => {
     baseViewer.value = viewer
 
     // 初始化模型数组
-    const mC = initModelRegistry(viewer, curModelJSONArr, setTargetModel)
+    const mC = initModelRegistry(viewer, tar, curModelJSONArr, setTargetModel)
 
     // 初始化modelArr
     if (tar.modelsArr) {
@@ -765,8 +765,8 @@ const initViewer = async (tar: Project) => {
     modelControl.value = mC
 
     // 初始化范围
-    const dc = paintCircle(viewer, coordinates, radius, globalObj.distanceColor)
-    dc.visible = !!globalObj.showDistance
+    const dc = paintCircle(viewer, radius, globalObj.distanceColor)
+    dc.visible = globalObj.showDistance
     distanceCircle.value = dc
 
     // 初始化天空
@@ -794,7 +794,7 @@ const initViewer = async (tar: Project) => {
     // })
 
     // 初始化设置漫游控件
-    const rm = new RandomSceneRoamer(viewer.camera, mC.controls, new THREE.Vector3(...coordinates), radius, {
+    const rm = new RandomSceneRoamer(viewer.camera, viewer.controls, new THREE.Vector3(...coordinates), radius, {
       startCb: () => {
         isFlying.value = true
       },

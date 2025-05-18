@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import RawSkyboxMap from '@/assets/skybox/skybox.json'
 import { Project } from '@/interface/project'
 import { drawGrid } from './grid-three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 type RawSkyboxMap = Record<
   string,
@@ -58,6 +59,7 @@ export type ThreeViwer = {
   camera: THREE.PerspectiveCamera
   renderer: THREE.WebGLRenderer
   grid: THREE.GridHelper
+  controls: OrbitControls
   setLayerColor: (hex: string) => void
   /** 销毁并关闭动画 */
   destory: () => void
@@ -98,7 +100,7 @@ export const initProjectViewer = (container: HTMLElement, tar: Project): ThreeVi
   camera.position.set(0, 20, 50)
 
   // 创建渲染器
-  const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
   renderer.setSize(container.clientWidth, container.clientHeight)
   container.appendChild(renderer.domElement)
 
@@ -122,6 +124,18 @@ export const initProjectViewer = (container: HTMLElement, tar: Project): ThreeVi
   light.position.set(10, 20, 10)
   scene.add(light)
 
+  const controls = new OrbitControls(camera, renderer.domElement)
+
+  // 设置鼠标操作
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN, // 左键旋转
+    MIDDLE: THREE.MOUSE.ROTATE, // 中键缩放
+    RIGHT: THREE.MOUSE.DOLLY // 右键平移
+  }
+
+  controls.enablePan = true
+  controls.panSpeed = 1.0
+
   let animationId: number | null = null
   // 简单动画循环
   const animate = () => {
@@ -136,6 +150,7 @@ export const initProjectViewer = (container: HTMLElement, tar: Project): ThreeVi
     camera,
     renderer,
     grid,
+    controls,
     domElement: renderer.domElement,
     setLayerColor(hex: string) {
       const material = layer.material as THREE.MeshBasicMaterial

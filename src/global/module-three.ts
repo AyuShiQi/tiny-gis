@@ -1,11 +1,10 @@
 import { ModuleJSON, ModuleObject } from '@/interface/module'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { ThreeViwer } from './project-three'
 import { gsap } from 'gsap'
-import { getPositionbyUnit } from './distance'
-import { latLngToMercator, parseToMercator } from './json'
+import { getRelativePosition, latLngToMercator, parseToMercator } from './json'
+import { Project } from '@/interface/project'
 
 export interface ModuleLabel {
   position: number[]
@@ -40,13 +39,13 @@ const createLabel = (jsonData: ModuleJSON, basePosition: THREE.Vector3, scale: n
   ctx.font = '14px Arial'
   const textWidth = ctx.measureText(labelData.text).width
   canvas.width = textWidth
-  canvas.height = 30
+  canvas.height = 15
   ctx.font = '14px Arial'
-  ctx.fillStyle = labelData.color
+  ctx.fillStyle = '#fff'
   ctx.fillText(labelData.text, 0, 14)
 
   const texture = new THREE.CanvasTexture(canvas)
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true })
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, color: new THREE.Color(labelData.color) })
   const sprite = new THREE.Sprite(material)
 
   sprite.scale.set(canvas.width * 0.1 * scale, canvas.height * 0.1 * scale, 1)
@@ -83,7 +82,6 @@ const addPrimitive = (scene: THREE.Scene, obj: ModuleObject, basePosition: THREE
 const loadModel = (
   loader: GLTFLoader,
   url: string,
-  basePosition: THREE.Vector3,
   objPos: THREE.Vector3,
   scale: number,
   scene: THREE.Scene,
@@ -95,7 +93,7 @@ const loadModel = (
       gltf => {
         const root = gltf.scene
         root.scale.set(scale, scale, scale)
-        root.position.copy(basePosition.clone().add(objPos))
+        root.position.copy(objPos)
         root.userData = { id }
         scene.add(root)
         resolve(root)
@@ -107,10 +105,10 @@ const loadModel = (
 }
 
 /** 渲染模型（创建 Primitive、加载模型、创建标签） */
-export const renderRelativeModel = async (jsonData: ModuleJSON, scene: THREE.Scene) => {
+export const renderRelativeModel = async (target: Project, jsonData: ModuleJSON, scene: THREE.Scene) => {
   const scale = jsonData.scale ?? 1
 
-  const basePosition = new THREE.Vector3(...latLngToMercator(jsonData.basePosition))
+  const basePosition = new THREE.Vector3(...getRelativePosition(target.coordinates, jsonData.basePosition))
 
   const primitives: THREE.Mesh[] = []
   const modelEntities: THREE.Object3D[] = []
@@ -122,12 +120,11 @@ export const renderRelativeModel = async (jsonData: ModuleJSON, scene: THREE.Sce
   const loader = new GLTFLoader()
 
   for (const obj of jsonData.objects) {
-    const objPos = new THREE.Vector3(...latLngToMercator(obj.position.map(v => v * scale)))
     if (obj.type === 'box') {
       const prim = addPrimitive(scene, obj, basePosition, scale, jsonData.show, jsonData.id)
       if (prim) primitives.push(prim)
     } else if (obj.type === 'model' && obj.url) {
-      const model = await loadModel(loader, obj.url, basePosition, objPos, scale, scene, jsonData.id)
+      const model = await loadModel(loader, obj.url, basePosition, scale, scene, jsonData.id)
       modelEntities.push(model)
     }
   }
@@ -154,11 +151,11 @@ export const removeMyModel = (scene: THREE.Scene, extra: Awaited<ReturnType<type
 
 /** 改变模型位置 */
 export const changeMyModelPosition = (
-  scene: THREE.Scene,
+  originTarget: number[],
   target: { jsonData: ModuleJSON; extra: Awaited<ReturnType<typeof renderRelativeModel>> },
   newBasePosition: number[]
 ) => {
-  const basePosVec = new THREE.Vector3(...latLngToMercator(newBasePosition))
+  const basePosVec = new THREE.Vector3(...getRelativePosition(originTarget, newBasePosition))
   const scale = target.jsonData.scale ?? 1
   target.extra.primitives.forEach((prim, idx) => {
     const obj = target.jsonData.objects[idx]
@@ -194,6 +191,7 @@ export type ModelRegistryEntry = { jsonData: ModuleJSON; extra: Awaited<ReturnTy
 /** 初始化模型管理系统 */
 export const initModelRegistry = (
   viwer: ThreeViwer,
+  target: Project,
   /** reactive数组，用来接收当前拥有的JSON数组 */
   reciveModuleJSONArr: { id: number; name: string }[],
   onFocusModule: (model: ModelRegistryEntry) => void
@@ -201,9 +199,53 @@ export const initModelRegistry = (
   const modelRegistry: { jsonData: ModuleJSON; extra: Awaited<ReturnType<typeof renderRelativeModel>> }[] = []
   const highlightLabels: ReturnType<typeof highlightLabel>[] = []
 
-  const controls = new OrbitControls(viwer.camera, viwer.domElement)
   const raycaster = new THREE.Raycaster()
   const mouse = new THREE.Vector2()
+
+  // 飞行到目标模型（平滑过渡）
+  const goToTargetModel = (nopt: { id?: number }) => {
+    if (nopt.id) {
+      const t = findModelById(nopt.id)
+
+      if (t && viwer) {
+        onFocusModule(t)
+
+        const base = getRelativePosition(target.coordinates, t.jsonData.basePosition)
+
+        const camera = viwer.camera
+
+        // 目标相机位置（从目标正上方 40m 观察）
+        const targetPos = new THREE.Vector3(base[0], base[1] + 20, base[2])
+        const lookAtPos = new THREE.Vector3(base[0], base[1], base[2])
+
+        // 使用 gsap 平滑飞行
+        gsap.to(camera.position, {
+          x: targetPos.x,
+          y: targetPos.y,
+          z: targetPos.z,
+          duration: 2,
+          onUpdate: () => {
+            camera.lookAt(lookAtPos)
+            if (viwer.controls) {
+              viwer.controls.target.copy(lookAtPos)
+              viwer.controls.update()
+            }
+          }
+        })
+
+        // 高亮标签逻辑
+        const targetLabel = t.extra.getTotalLabel
+        if (highlightLabels.length) {
+          highlightLabels.forEach(l => l?.reset())
+          highlightLabels.length = 0
+        }
+
+        if (targetLabel) {
+          highlightLabels.push(highlightLabel(targetLabel))
+        }
+      }
+    }
+  }
 
   /** 根据 id 找到模型 */
   const findModelById = (id: number) => modelRegistry.find(m => m.jsonData.id === id)
@@ -218,14 +260,11 @@ export const initModelRegistry = (
 
     for (const model of modelRegistry) {
       const label = model.extra.getTotalLabel
-      if (!label || !label.visible) continue
+      if (!label) continue
       const intersects = raycaster.intersectObject(label)
       if (intersects.length > 0) {
         onFocusModule(model)
-        const basePos = new THREE.Vector3(...model.jsonData.basePosition)
-        viwer.camera.position.set(basePos.x + 10, basePos.y + 10, basePos.z + 10)
-        controls.target.copy(basePos)
-        controls.update()
+        goToTargetModel({ id: model.jsonData.id })
         break
       }
     }
@@ -238,7 +277,7 @@ export const initModelRegistry = (
     if (jsonData.id === undefined) {
       jsonData.id = Math.floor(10000000 + Math.random() * 90000000)
     }
-    const extra = await renderRelativeModel(jsonData, viwer.scene)
+    const extra = await renderRelativeModel(target, jsonData, viwer.scene)
     modelRegistry.push({ jsonData, extra })
     reciveModuleJSONArr.push({
       id: jsonData.id,
@@ -255,52 +294,6 @@ export const initModelRegistry = (
     removeMyModel(viwer.scene, modelRegistry[idx].extra)
     modelRegistry.splice(idx, 1)
     reciveModuleJSONArr.splice(idx, 1)
-  }
-
-  // 飞行到目标模型（平滑过渡）
-  const goToTargetModel = (nopt: { id?: number }) => {
-    if (nopt.id) {
-      const target = findModelById(nopt.id)
-
-      if (target && viwer) {
-        onFocusModule(target)
-
-        const { basePosition, unit } = target.jsonData
-        const base = getPositionbyUnit(basePosition, unit)
-
-        const camera = viwer.camera
-
-        // 目标相机位置（从目标正上方 40m 观察）
-        const targetPos = new THREE.Vector3(base[0], base[1] + 20, base[2] + 40)
-        const lookAtPos = new THREE.Vector3(base[0], base[1], base[2])
-
-        // 使用 gsap 平滑飞行
-        gsap.to(camera.position, {
-          x: targetPos.x,
-          y: targetPos.y,
-          z: targetPos.z,
-          duration: 1.5,
-          onUpdate: () => {
-            camera.lookAt(lookAtPos)
-            if (controls) {
-              controls.target.copy(lookAtPos)
-              controls.update()
-            }
-          }
-        })
-
-        // 高亮标签逻辑
-        const targetLabel = target.extra.getTotalLabel
-        if (highlightLabels.length) {
-          highlightLabels.forEach(l => l?.reset())
-          highlightLabels.length = 0
-        }
-
-        if (targetLabel) {
-          highlightLabels.push(highlightLabel(targetLabel))
-        }
-      }
-    }
   }
 
   /** 设置模型显隐 */
@@ -321,7 +314,6 @@ export const initModelRegistry = (
     if (!id) return
     const model = findModelById(id)
 
-    console.log(opt, model)
     if (!model) return
     setMyLabelVisible(model, visible)
   }
@@ -333,7 +325,7 @@ export const initModelRegistry = (
 
     const model = findModelById(id)
     if (!model) return
-    changeMyModelPosition(viwer.scene, model, newBasePosition)
+    changeMyModelPosition(target.coordinates, model, newBasePosition)
   }
 
   /** 修改label内容 */
@@ -352,12 +344,14 @@ export const initModelRegistry = (
         // 重新创建带文字的贴图
         const canvas = document.createElement('canvas')
         const context = canvas.getContext('2d')!
-        canvas.width = 256
-        canvas.height = 128
+        context.font = '14px Arial'
+        const textWidth = context.measureText(text).width
+        canvas.width = textWidth
+        canvas.height = 15
         context.clearRect(0, 0, canvas.width, canvas.height)
-        context.fillStyle = 'white'
-        context.font = '24px sans-serif'
-        context.fillText(text, 10, 64)
+        context.fillStyle = '#fff'
+        context.font = '14px Arial'
+        context.fillText(text, 0, 14)
 
         const texture = new THREE.CanvasTexture(canvas)
         label.material.map.dispose() // 清理旧纹理
@@ -377,17 +371,20 @@ export const initModelRegistry = (
 
     if (!id) return
 
-    const target = findModelById(id)
-    if (!target) return
+    const t = findModelById(id)
+    if (!t) return
 
-    if (target && target.extra.getTotalLabel) {
-      const label = target.extra.getTotalLabel
+    if (target && t.extra.getTotalLabel) {
+      const label = t.extra.getTotalLabel
+      const { scale = 1, basePosition } = t.jsonData
 
+      const rightBasePosition = getRelativePosition(target.coordinates, basePosition)
       // 更新 label 位置
-      label.position.set(...parseToMercator(newPosition))
+      const posOffset = parseToMercator(newPosition.map(v => v * scale)).map((v, index) => rightBasePosition[index] + v) as [number, number, number]
 
+      label.position.set(...posOffset)
       // 同步更新配置数据
-      target.jsonData.label.position = newPosition as [number, number, number]
+      t.jsonData.label.position = newPosition as [number, number, number]
     }
   }
 
@@ -400,7 +397,6 @@ export const initModelRegistry = (
     changePosition,
     changeLabelText,
     changeLabelPosition,
-    modelRegistry,
-    controls
+    modelRegistry
   }
 }

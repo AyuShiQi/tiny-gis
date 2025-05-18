@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { GridPaintOption } from '@/interface/grid'
 import { GridEntities } from '@/interface/grid-three'
 import { ThreeViwer } from './project-three'
-import { latLngToMercator } from './json'
 
 // three网格线实体数组
 export const initGrid = (): GridEntities => {
@@ -133,8 +132,8 @@ export const drawGrid = (scene: THREE.Scene) => {
 }
 
 // 画圆范围
-export const paintCircle = (viewer: ThreeViwer, center: [number, number], radius: number, hex = '#000') => {
-  const color = new THREE.Color(hex)
+export const paintCircle = (viewer: ThreeViwer, radius: number, hex = '#000') => {
+  const color = new THREE.Color(hex.slice(0, 7))
   const geometry = new THREE.CircleGeometry(radius, 64)
 
   const material = new THREE.MeshBasicMaterial({
@@ -145,8 +144,7 @@ export const paintCircle = (viewer: ThreeViwer, center: [number, number], radius
   const circle = new THREE.Mesh(geometry, material)
   circle.rotation.x = -Math.PI / 2
 
-  const position = latLngToMercator(center)
-  circle.position.set(...position)
+  circle.position.set(0, -0.5, 0)
   circle.rotation.x = -Math.PI / 2
 
   viewer.scene.add(circle)
@@ -156,7 +154,7 @@ export const paintCircle = (viewer: ThreeViwer, center: [number, number], radius
 // 修改圆颜色
 export const setCircleColor = (circle: THREE.Mesh, hex: string) => {
   if (circle.material) {
-    const color = new THREE.Color(hex)
+    const color = new THREE.Color(hex.slice(0, 7))
     ;(circle.material as THREE.MeshBasicMaterial).color = color
     ;(circle.material as THREE.MeshBasicMaterial).opacity = 0.1
     ;(circle.material as THREE.MeshBasicMaterial).transparent = true
@@ -172,7 +170,7 @@ export const toggleGridVisibility = (gridEntities: GridEntities, isVisible: bool
 
 // 修改网格颜色
 export const setGridColor = (gridEntities: GridEntities, hex: string) => {
-  const color = new THREE.Color(hex)
+  const color = new THREE.Color(hex.slice(0, 7))
   gridEntities.forEach(line => {
     if (Array.isArray(line.material)) {
       ;(line.material as THREE.MeshBasicMaterial[]).forEach(mat => (mat.color = color))

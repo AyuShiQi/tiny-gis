@@ -35,12 +35,12 @@ export async function renderToImage({
   if (jsonConfig?.objects) {
     jsonConfig.objects.forEach((obj: any) => {
       if (obj.type === 'box') {
-        const geometry = new THREE.BoxGeometry(...obj.dimensions)
+        const geometry = new THREE.BoxGeometry(obj.dimensions[0], obj.dimensions[2], obj.dimensions[1])
         const material = new THREE.MeshStandardMaterial({
           color: new THREE.Color(...obj.color.slice(0, 3))
         })
         const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.set(obj.position[0], obj.position[1], obj.position[2])
+        mesh.position.set(obj.position[0], obj.position[2], obj.position[1])
         scene.add(mesh)
         boundingBox.expandByObject(mesh)
       }
